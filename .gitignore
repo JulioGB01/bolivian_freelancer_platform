@@ -1,0 +1,26 @@
+# Rust
+contracts/target/
+**/target/
+
+# Node
+node_modules/
+frontend/.next/
+frontend/out/
+
+# Env and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Stellar CLI local config (may contain identities)
+.stellar/
+.soroban/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/

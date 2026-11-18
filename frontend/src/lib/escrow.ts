@@ -1,0 +1,310 @@
+// Escrow client. In demo mode this is a faithful in-browser simulation of the
+// Soroban contract (same state machine and money math as
+// contracts/escrow/src/lib.rs). In real mode the same `EscrowApi` interface is
+// implemented by the generated TypeScript bindings (created after the contract
+// is deployed, task T3.3).
+//
+// Amounts are integers in the token's smallest unit (7 decimals). Money math is
+// integer-only, rounding down, multiplication before division, exactly like the
+// contract (docs/03_CONTRACT_SPEC.md section 4).
+import { DEMO_MODE } from "./config";
+import { BPS_DENOMINATOR } from "./format";
+import type { Agreement, Config, Milestone, MilestoneStatus } from "./types";
+
+export interface NewMilestoneInput {
+  title: string;
+  amount: number;
+}
+
+export interface NewAgreementInput {
+  freelancer: string;
+  client: string;
+  title: string;
+  milestones: NewMilestoneInput[];
+  reviewWindowSecs: number;
+}
+
+export interface EscrowApi {
+  getConfig(): Promise<Config>;
+  getAgreement(id: number): Promise<Agreement | null>;
+  agreementsOf(address: string): Promise<Agreement[]>;
+  /** Demo-only: list every agreement (used by the arbiter panel). */
+  listAll(): Promise<Agreement[]>;
+  balanceOf(address: string): Promise<number>;
+  createAgreement(input: NewAgreementInput): Promise<number>;
+  fundMilestone(id: number, index: number): Promise<void>;
+  submitMilestone(id: number, index: number, evidence: string): Promise<void>;
+  approveMilestone(id: number, index: number): Promise<void>;
+  claimMilestone(id: number, index: number): Promise<void>;
+  disputeMilestone(id: number, index: number, reason: string): Promise<void>;
+  resolveDispute(id: number, index: number, freelancerBps: number): Promise<void>;
+  refundMilestone(id: number, index: number): Promise<void>;
+}
+
+export class EscrowError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "EscrowError";
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Demo (mock) implementation
+// ---------------------------------------------------------------------------
+
+const STATE_KEY = "bfe.mock.state";
+const MAX_MILESTONES = 10;
+const DEMO_FEE_BPS = 100; // 1%. Decision D-03 (fee) is still Open; this is a demo value.
+const DEMO_INITIAL_BALANCE = 1_000_000_000; // 100 USDC, 7 decimals.
+
+interface MockState {
+  config: Config;
+  nextId: number;
+  agreements: Record<number, Agreement>;
+  balances: Record<string, number>;
+}
+
+function nowSecs(): number {
+  return Math.floor(Date.now() / 1000);
+}
+
+function defaultState(): MockState {
+  return {
+    config: {
+      admin: "demo-admin",
+      arbiter: "demo-arbiter",
+      token: "demo-usdc",
+      feeBps: DEMO_FEE_BPS,
+      feeRecipient: "demo-fee-recipient",
+    },
+    nextId: 0,
+    agreements: {},
+    balances: {
+      "demo-freelancer": DEMO_INITIAL_BALANCE,
+      "demo-client": DEMO_INITIAL_BALANCE,
+      "demo-arbiter": 0,
+      "demo-fee-recipient": 0,
+      "demo-admin": 0,
+    },
+  };
+}
+
+function loadState(): MockState {
+  if (typeof window === "undefined") return defaultState();
+  const raw = window.localStorage.getItem(STATE_KEY);
+  if (!raw) return defaultState();
+  try {
+    const parsed = JSON.parse(raw) as MockState;
+    if (!parsed.config || !parsed.balances || !parsed.agreements) {
+      return defaultState();
+    }
+    return parsed;
+  } catch {
+    return defaultState();
+  }
+}
+
+function saveState(s: MockState): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(STATE_KEY, JSON.stringify(s));
+}
+
+/** Deterministic "next state" executor shared by all state changes. */
+class MockEscrow implements EscrowApi {
+  private state: MockState;
+
+  constructor() {
+    this.state = loadState();
+  }
+
+  private persist(): void {
+    saveState(this.state);
+  }
+
+  private agreement(id: number): Agreement {
+    const a = this.state.agreements[id];
+    if (!a) throw new EscrowError("AgreementNotFound");
+    return a;
+  }
+
+  private milestone(a: Agreement, index: number): Milestone {
+    const m = a.milestones[index];
+    if (!m) throw new EscrowError("MilestoneNotFound");
+    return m;
+  }
+
+  private requireStatus(a: Agreement, index: number, allowed: MilestoneStatus[]): Milestone {
+    const m = this.milestone(a, index);
+    if (!allowed.includes(m.status)) throw new EscrowError("InvalidStatus");
+    return m;
+  }
+
+  private transfer(from: string, to: string, amount: number): void {
+    if (amount <= 0) return;
+    if ((this.state.balances[from] ?? 0) < amount) {
+      throw new EscrowError("InsufficientBalance");
+    }
+    this.state.balances[from] -= amount;
+    this.state.balances[to] = (this.state.balances[to] ?? 0) + amount;
+  }
+
+  async getConfig(): Promise<Config> {
+    return this.state.config;
+  }
+
+  async getAgreement(id: number): Promise<Agreement | null> {
+    return this.state.agreements[id] ?? null;
+  }
+
+  async agreementsOf(address: string): Promise<Agreement[]> {
+    return Object.values(this.state.agreements)
+      .filter((a) => a.freelancer === address || a.client === address)
+      .sort((a, b) => b.id - a.id);
+  }
+
+  async listAll(): Promise<Agreement[]> {
+    return Object.values(this.state.agreements).sort((a, b) => b.id - a.id);
+  }
+
+  async balanceOf(address: string): Promise<number> {
+    return this.state.balances[address] ?? 0;
+  }
+
+  async createAgreement(input: NewAgreementInput): Promise<number> {
+    if (input.freelancer === input.client) throw new EscrowError("SameParty");
+    const count = input.milestones.length;
+    if (count === 0 || count > MAX_MILESTONES) throw new EscrowError("InvalidMilestoneCount");
+    for (const m of input.milestones) {
+      if (m.amount <= 0) throw new EscrowError("InvalidAmount");
+    }
+    const id = this.state.nextId;
+    const milestones: Milestone[] = input.milestones.map((m) => ({
+      title: m.title,
+      amount: m.amount,
+      status: "Pending",
+      evidence: "",
+      submittedAt: 0,
+      disputeReason: "",
+    }));
+    this.state.agreements[id] = {
+      id,
+      freelancer: input.freelancer,
+      client: input.client,
+      title: input.title,
+      reviewWindowSecs: input.reviewWindowSecs,
+      feeBps: this.state.config.feeBps, // snapshot
+      milestones,
+      createdAt: nowSecs(),
+    };
+    this.state.nextId += 1;
+    this.persist();
+    return id;
+  }
+
+  async fundMilestone(id: number, index: number): Promise<void> {
+    const a = this.agreement(id);
+    const m = this.requireStatus(a, index, ["Pending"]);
+    this.transfer(a.client, "CONTRACT", m.amount);
+    m.status = "Funded";
+    this.persist();
+  }
+
+  async submitMilestone(id: number, index: number, evidence: string): Promise<void> {
+    const a = this.agreement(id);
+    const m = this.requireStatus(a, index, ["Funded"]);
+    m.evidence = evidence;
+    m.submittedAt = nowSecs();
+    m.status = "Submitted";
+    this.persist();
+  }
+
+  async approveMilestone(id: number, index: number): Promise<void> {
+    const a = this.agreement(id);
+    const m = this.requireStatus(a, index, ["Submitted"]);
+    const amount = m.amount;
+    m.status = "Released";
+    const fee = Math.floor((amount * a.feeBps) / BPS_DENOMINATOR);
+    this.transfer("CONTRACT", a.freelancer, amount - fee);
+    this.transfer("CONTRACT", this.state.config.feeRecipient, fee);
+    this.persist();
+  }
+
+  async claimMilestone(id: number, index: number): Promise<void> {
+    const a = this.agreement(id);
+    const m = this.requireStatus(a, index, ["Submitted"]);
+    if (nowSecs() < m.submittedAt + a.reviewWindowSecs) throw new EscrowError("ReviewWindowOpen");
+    const amount = m.amount;
+    m.status = "Released";
+    const fee = Math.floor((amount * a.feeBps) / BPS_DENOMINATOR);
+    this.transfer("CONTRACT", a.freelancer, amount - fee);
+    this.transfer("CONTRACT", this.state.config.feeRecipient, fee);
+    this.persist();
+  }
+
+  async disputeMilestone(id: number, index: number, reason: string): Promise<void> {
+    const a = this.agreement(id);
+    const m = this.requireStatus(a, index, ["Submitted"]);
+    if (nowSecs() >= m.submittedAt + a.reviewWindowSecs) throw new EscrowError("ReviewWindowClosed");
+    m.disputeReason = reason;
+    m.status = "Disputed";
+    this.persist();
+  }
+
+  async resolveDispute(id: number, index: number, freelancerBps: number): Promise<void> {
+    const a = this.agreement(id);
+    const m = this.requireStatus(a, index, ["Disputed"]);
+    if (freelancerBps > BPS_DENOMINATOR) throw new EscrowError("InvalidBps");
+    const amount = m.amount;
+    m.status = "Resolved";
+    const freelancerPart = Math.floor((amount * freelancerBps) / BPS_DENOMINATOR);
+    const clientPart = amount - freelancerPart;
+    const fee = Math.floor((freelancerPart * a.feeBps) / BPS_DENOMINATOR);
+    this.transfer("CONTRACT", a.freelancer, freelancerPart - fee);
+    this.transfer("CONTRACT", this.state.config.feeRecipient, fee);
+    this.transfer("CONTRACT", a.client, clientPart);
+    this.persist();
+  }
+
+  async refundMilestone(id: number, index: number): Promise<void> {
+    const a = this.agreement(id);
+    const m = this.requireStatus(a, index, ["Funded", "Submitted"]);
+    const amount = m.amount;
+    m.status = "Refunded";
+    this.transfer("CONTRACT", a.client, amount);
+    this.persist();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Factory
+// ---------------------------------------------------------------------------
+
+let instance: EscrowApi | null = null;
+
+export function getEscrow(): EscrowApi {
+  if (!instance) {
+    instance = DEMO_MODE ? new MockEscrow() : new MockEscrow(); // real bindings slot in here (T3.3)
+  }
+  return instance;
+}
+
+/** Re-read the demo state after an external change (used by the wallet switcher). */
+export function resetEscrow(): void {
+  instance = null;
+}
+
+/** Amount an agreement currently has locked in the contract. */
+export function lockedAmountOf(agreement: Agreement): number {
+  let total = 0;
+  for (const m of agreement.milestones) {
+    if (["Funded", "Submitted", "Disputed"].includes(m.status)) total += m.amount;
+  }
+  return total;
+}
+
+/** Event fired after any state change so balances and lists can refresh. */
+export const ESCROW_CHANGED = "bfe:escrow-changed";
+
+export function notifyEscrowChanged(): void {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(ESCROW_CHANGED));
+}
