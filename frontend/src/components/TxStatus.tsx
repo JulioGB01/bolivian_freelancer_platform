@@ -23,7 +23,7 @@ export default function TxStatus({
   }
   if (phase === "success") {
     return (
-      <span role="status" className="ml-2 text-xs font-medium text-emerald-600">
+      <span role="status" className="ml-2 text-xs font-medium text-brand-600">
         ✓ Done
       </span>
     );

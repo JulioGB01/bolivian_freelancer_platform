@@ -182,7 +182,7 @@ export default function NewAgreement() {
               <button
                 type="button"
                 onClick={() => setMilestones((prev) => [...prev, { title: "", amount: "" }])}
-                className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+                className="text-sm font-medium text-brand-600 hover:text-brand-500"
               >
                 + Add milestone
               </button>
@@ -213,7 +213,7 @@ export default function NewAgreement() {
               type="button"
               onClick={submit}
               disabled={busy}
-              className="w-full rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-40 sm:w-auto"
+              className="w-full rounded-full bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-40 sm:w-auto"
             >
               {busy ? "Creating…" : "Create agreement"}
             </button>
@@ -225,7 +225,7 @@ export default function NewAgreement() {
 }
 
 const inputCls =
-  "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100";
+  "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100";
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (

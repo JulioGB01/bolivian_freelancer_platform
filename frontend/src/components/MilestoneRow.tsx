@@ -91,7 +91,7 @@ export default function MilestoneRow({
 
       <p className={`mt-2 text-sm ${step.needsAction ? "font-medium text-slate-900" : "text-slate-600"}`}>
         {step.needsAction && (
-          <span className="mr-1.5 rounded bg-indigo-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+          <span className="mr-1.5 rounded bg-brand-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
             Your turn
           </span>
         )}
@@ -121,7 +121,7 @@ export default function MilestoneRow({
             href={milestone.evidence}
             target="_blank"
             rel="noreferrer noopener"
-            className="break-all text-indigo-600 underline"
+            className="break-all text-brand-600 underline"
           >
             {milestone.evidence}
           </a>
@@ -278,13 +278,13 @@ function ActionButton({
     ? "bg-red-600 text-white hover:bg-red-500"
     : subtle
       ? "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-      : "bg-indigo-600 text-white hover:bg-indigo-500";
+      : "bg-brand-600 text-white hover:bg-brand-700";
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`rounded-md px-3 py-1.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40 ${base}`}
+      className={`rounded-full px-4 py-1.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40 ${base}`}
     >
       {children}
     </button>

@@ -52,9 +52,9 @@ export default function WalletButton() {
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
-          className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm hover:bg-slate-50"
+          className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50"
         >
-          <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden />
+          <span className="h-2 w-2 rounded-full bg-brand-500" aria-hidden />
           <span className="font-medium capitalize text-slate-800">{wallet.role}</span>
           <span className="hidden text-xs text-slate-500 sm:inline">{formatAmount(balance)} USDC</span>
           <span aria-hidden className="text-slate-400">▾</span>
@@ -64,7 +64,7 @@ export default function WalletButton() {
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+          className="rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
         >
           Connect wallet
         </button>
@@ -90,7 +90,7 @@ export default function WalletButton() {
                 setOpen(false);
               }}
               className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm hover:bg-slate-100 ${
-                wallet?.address === id.address ? "font-semibold text-indigo-700" : "text-slate-700"
+                wallet?.address === id.address ? "font-semibold text-brand-700" : "text-slate-700"
               }`}
             >
               {id.label}

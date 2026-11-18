@@ -22,8 +22,8 @@ export default function NavLinks() {
             key={l.href}
             href={l.href}
             aria-current={active ? "page" : undefined}
-            className={`whitespace-nowrap rounded-md px-2.5 py-1.5 ${
-              active ? "bg-indigo-50 font-medium text-indigo-700" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+            className={`whitespace-nowrap rounded-full px-3 py-1.5 ${
+              active ? "bg-brand-50 font-medium text-brand-700" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
             }`}
           >
             {l.label}

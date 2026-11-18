@@ -55,7 +55,7 @@ export default function Dashboard() {
         <h1 className="text-2xl font-semibold">My agreements</h1>
         <Link
           href="/agreements/new"
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+          className="rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
         >
           + New agreement
         </Link>
@@ -75,7 +75,7 @@ export default function Dashboard() {
           </p>
           <Link
             href="/agreements/new"
-            className="mt-4 inline-block rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+            className="mt-4 inline-block rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
           >
             Create my first agreement
           </Link>
@@ -94,10 +94,10 @@ export default function Dashboard() {
 function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
     <div
-      className={`rounded-xl border p-4 ${accent ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-white"}`}
+      className={`rounded-xl border p-4 ${accent ? "border-brand-200 bg-brand-50" : "border-slate-200 bg-white"}`}
     >
-      <p className={`text-xs font-medium ${accent ? "text-emerald-800" : "text-slate-500"}`}>{label}</p>
-      <p className={`mt-1 text-xl font-semibold ${accent ? "text-emerald-900" : "text-slate-900"}`}>{value}</p>
+      <p className={`text-xs font-medium ${accent ? "text-brand-800" : "text-slate-500"}`}>{label}</p>
+      <p className={`mt-1 text-xl font-semibold ${accent ? "text-brand-900" : "text-slate-900"}`}>{value}</p>
     </div>
   );
 }

@@ -21,14 +21,14 @@ export default function MoneyLocked({ agreement }: { agreement: Agreement }) {
   const pct = (n: number) => (total > 0 ? (n / total) * 100 : 0);
 
   return (
-    <section className="rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5">
+    <section className="rounded-xl border border-brand-200 bg-brand-50/60 p-5">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <p className="text-sm font-medium text-emerald-900">
+          <p className="text-sm font-medium text-brand-900">
             <span aria-hidden>🔒 </span>Locked in escrow right now
           </p>
-          <p className="text-3xl font-bold text-emerald-900">
-            {formatAmount(locked)} <span className="text-base font-medium text-emerald-700">USDC</span>
+          <p className="text-3xl font-bold text-brand-900">
+            {formatAmount(locked)} <span className="text-base font-medium text-brand-700">USDC</span>
           </p>
         </div>
         <p className="text-sm text-slate-600">
@@ -41,12 +41,12 @@ export default function MoneyLocked({ agreement }: { agreement: Agreement }) {
         role="img"
         aria-label={`${formatAmount(settled)} settled, ${formatAmount(locked)} locked, ${formatAmount(unfunded)} not funded yet`}
       >
-        <div className="bg-indigo-500" style={{ width: `${pct(settled)}%` }} />
-        <div className="bg-emerald-500" style={{ width: `${pct(locked)}%` }} />
+        <div className="bg-slate-400" style={{ width: `${pct(settled)}%` }} />
+        <div className="bg-brand-600" style={{ width: `${pct(locked)}%` }} />
       </div>
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
-        <Legend color="bg-indigo-500" label={`Settled ${formatAmount(settled)}`} />
-        <Legend color="bg-emerald-500" label={`Locked ${formatAmount(locked)}`} />
+        <Legend color="bg-slate-400" label={`Settled ${formatAmount(settled)}`} />
+        <Legend color="bg-brand-600" label={`Locked ${formatAmount(locked)}`} />
         <Legend color="bg-slate-300" label={`Not funded yet ${formatAmount(unfunded)}`} />
       </div>
 
@@ -57,7 +57,7 @@ export default function MoneyLocked({ agreement }: { agreement: Agreement }) {
           <>
             Verify it yourself:{" "}
             <a
-              className="font-medium text-emerald-800 underline"
+              className="font-medium text-brand-800 underline"
               href={`${EXPLORER_URL}/contract/${ESCROW_CONTRACT_ID}`}
               target="_blank"
               rel="noreferrer noopener"

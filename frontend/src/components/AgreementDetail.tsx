@@ -46,7 +46,7 @@ export default function AgreementDetail({ id }: { id: number }) {
     return (
       <div className="rounded-lg border border-slate-200 bg-white p-8 text-center">
         <p className="text-slate-600">Agreement #{id} not found.</p>
-        <Link href="/dashboard" className="mt-2 inline-block text-sm text-indigo-600 underline">
+        <Link href="/dashboard" className="mt-2 inline-block text-sm text-brand-600 underline">
           Back to my agreements
         </Link>
       </div>
@@ -61,7 +61,7 @@ export default function AgreementDetail({ id }: { id: number }) {
   return (
     <div className="space-y-5">
       <div>
-        <Link href="/dashboard" className="text-sm text-indigo-600 hover:underline">
+        <Link href="/dashboard" className="text-sm text-brand-600 hover:underline">
           ← My agreements
         </Link>
         <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
@@ -69,7 +69,7 @@ export default function AgreementDetail({ id }: { id: number }) {
           <button
             type="button"
             onClick={copyLink}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            className="rounded-full border border-slate-300 bg-white px-4 py-1.5 text-sm font-medium text-slate-700 hover:border-brand-600 hover:text-brand-700"
           >
             {copied ? "✓ Link copied" : "Copy link for your client"}
           </button>
@@ -108,7 +108,7 @@ export default function AgreementDetail({ id }: { id: number }) {
       </div>
 
       {showShare && (
-        <div className="rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <strong>Next: send this agreement to your client.</strong> Use “Copy link for your
           client”. Once they lock the funds you will see it below, and you can start working.
         </div>

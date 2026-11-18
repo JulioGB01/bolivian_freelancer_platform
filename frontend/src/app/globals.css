@@ -1,6 +1,37 @@
 @import "tailwindcss";
 
+/* Clean white theme. The brand green is the green of the Bolivian flag (#007934);
+   red and yellow from the flag are used only as small accents (stripe, logo mark). */
+@theme {
+  --color-brand-50: #ecf7f0;
+  --color-brand-100: #d2eedb;
+  --color-brand-200: #a6dcb8;
+  --color-brand-300: #6ec290;
+  --color-brand-400: #34a465;
+  --color-brand-500: #108a48;
+  --color-brand-600: #007934;
+  --color-brand-700: #00652c;
+  --color-brand-800: #035025;
+  --color-brand-900: #053f1f;
+
+  --color-bo-red: #d52b1e;
+  --color-bo-yellow: #f9e300;
+  --color-bo-green: #007934;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
 body {
-  background: #f8fafc;
+  background: #ffffff;
   color: #0f172a;
+}
+
+/* Thin red / yellow / green band, like the Bolivian flag. */
+.bo-stripe {
+  background: linear-gradient(
+    to right,
+    var(--color-bo-red) 0 33.33%,
+    var(--color-bo-yellow) 33.33% 66.66%,
+    var(--color-bo-green) 66.66% 100%
+  );
 }
