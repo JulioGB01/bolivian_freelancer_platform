@@ -60,8 +60,8 @@ export default function Home() {
                 {t("home.title2")}
               </h1>
             </div>
-            <div className="mt-10 grid gap-8 border-t border-ink pt-6 sm:grid-cols-[1fr_auto] sm:items-end">
-              <p className="max-w-md text-base leading-relaxed text-ink/65">{t("home.lead")}</p>
+            <div className="mt-10 space-y-6 border-t border-ink pt-6">
+              <p className="max-w-xl text-base leading-relaxed text-ink/65">{t("home.lead")}</p>
               <div className="flex flex-wrap gap-2">
                 <Button asChild size="lg">
                   <Link href="/freelancer">
