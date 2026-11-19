@@ -18,13 +18,13 @@ export default function AgreementCard({ agreement, viewer, now }: { agreement: A
   return (
     <Link
       href={`/agreements/${agreement.id}`}
-      className="block rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-brand-300 hover:shadow"
+      className="block rounded-3xl border border-line bg-white p-4 shadow-sm transition hover:border-ink hover:shadow-lg"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="font-semibold text-slate-900">{agreement.title}</span>
         <div className="flex items-center gap-2">
           {todo > 0 && (
-            <span className="rounded-full bg-brand-600 px-2 py-0.5 text-xs font-semibold text-white">
+            <span className="rounded-full bg-ink px-2.5 py-0.5 text-xs font-semibold text-lime">
               {t("card.actions", { n: todo })}
             </span>
           )}

@@ -43,7 +43,7 @@ export default function ArbiterPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">{t("arb.title")}</h1>
+      <h1 className="text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">{t("arb.title")}</h1>
       {disputed.length === 0 ? (
         <Box>{t("arb.none")}</Box>
       ) : (
@@ -65,5 +65,5 @@ export default function ArbiterPage() {
 }
 
 function Box({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-600">{children}</div>;
+  return <div className="rounded-3xl border border-line bg-white p-8 text-center text-slate-600">{children}</div>;
 }

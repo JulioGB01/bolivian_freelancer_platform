@@ -39,7 +39,7 @@ export default function Dashboard() {
 
   if (!wallet) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
+      <div className="rounded-3xl border border-line bg-white p-8 text-center">
         <p className="text-slate-600">{t("dash.connect")}</p>
       </div>
     );
@@ -52,12 +52,12 @@ export default function Dashboard() {
   const todo = agreements.reduce((s, a) => s + actionsNeeded(a, roleIn(a, wallet.address), now), 0);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">{t("dash.title")}</h1>
+        <h1 className="text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">{t("dash.title")}</h1>
         <Link
           href="/agreements/new"
-          className="rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+          className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-black"
         >
           {t("dash.new")}
         </Link>
@@ -72,12 +72,12 @@ export default function Dashboard() {
       {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
       {agreements.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
+        <div className="rounded-3xl border border-dashed border-ink/20 bg-white p-10 text-center">
           <p className="font-medium text-slate-800">{t("dash.emptyT")}</p>
           <p className="mt-1 text-sm text-slate-500">{t("dash.emptyB")}</p>
           <Link
             href="/agreements/new"
-            className="mt-4 inline-block rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+            className="mt-4 inline-block rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-black"
           >
             {t("dash.emptyCta")}
           </Link>
@@ -95,9 +95,9 @@ export default function Dashboard() {
 
 function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className={`rounded-xl border p-4 ${accent ? "border-brand-200 bg-brand-50" : "border-slate-200 bg-white"}`}>
-      <p className={`text-xs font-medium ${accent ? "text-brand-800" : "text-slate-500"}`}>{label}</p>
-      <p className={`mt-1 text-xl font-semibold ${accent ? "text-brand-900" : "text-slate-900"}`}>{value}</p>
+    <div className={`rounded-3xl border p-6 ${accent ? "border-ink bg-ink text-white" : "border-line bg-white"}`}>
+      <p className={`text-xs font-medium uppercase tracking-wider ${accent ? "text-white/60" : "text-ink/50"}`}>{label}</p>
+      <p className={`mt-3 text-3xl font-semibold tracking-tight ${accent ? "text-lime" : "text-ink"}`}>{value}</p>
     </div>
   );
 }

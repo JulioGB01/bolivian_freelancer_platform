@@ -1,0 +1,9 @@
+# Only the web app is deployed to Vercel; the Rust contract and its build output are not needed.
+# Leading "/" = repository root only (src/contracts holds the generated bindings and must stay).
+/contracts/
+/scripts/
+/docs/
+/deployments/
+/node_modules/
+/.next/
+**/desktop.ini

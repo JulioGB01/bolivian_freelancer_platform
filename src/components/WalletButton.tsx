@@ -114,7 +114,7 @@ export default function WalletButton() {
           type="button"
           onClick={onConnectReal}
           disabled={busy === "connect"}
-          className="rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+          className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-black disabled:opacity-60"
         >
           {busy === "connect" ? t("wallet.connecting") : t("wallet.connect")}
         </button>
@@ -148,14 +148,14 @@ export default function WalletButton() {
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
-          className="rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+          className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-black"
         >
           {t("wallet.connect")}
         </button>
       )}
 
       {open && (
-        <div className="absolute right-0 z-20 mt-2 w-72 rounded-xl border border-slate-200 bg-white p-1 shadow-lg">
+        <div className="absolute right-0 z-20 mt-2 w-72 rounded-3xl border border-line bg-white p-1 shadow-lg">
           {wallet && (
             <div className="border-b border-slate-100 px-3 py-2 text-xs text-slate-500">
               <div className="flex items-center justify-between gap-2">

@@ -94,7 +94,7 @@ export default function MilestoneRow({
 
       <p className={`mt-2 text-sm ${step.needsAction ? "font-medium text-slate-900" : "text-slate-600"}`}>
         {step.needsAction && (
-          <span className="mr-1.5 rounded bg-brand-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+          <span className="mr-1.5 rounded-full bg-bo-yellow px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ink">
             {t("ms.yourTurn")}
           </span>
         )}
@@ -268,7 +268,7 @@ function ActionButton({
     ? "bg-red-600 text-white hover:bg-red-500"
     : subtle
       ? "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-      : "bg-brand-600 text-white hover:bg-brand-700";
+      : "bg-ink text-white hover:bg-black";
   return (
     <button
       type="button"

@@ -39,7 +39,7 @@ export default function NewAgreement() {
 
   if (!wallet) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-600">{t("new.connect")}</div>
+      <div className="rounded-3xl border border-line bg-white p-8 text-center text-slate-600">{t("new.connect")}</div>
     );
   }
 
@@ -88,13 +88,13 @@ export default function NewAgreement() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
+    <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{t("new.title")}</h1>
-        <p className="mt-1 text-sm text-slate-600">{t("new.lead")}</p>
+        <h1 className="text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">{t("new.title")}</h1>
+        <p className="mt-3 max-w-2xl text-ink/60">{t("new.lead")}</p>
       </div>
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="grid gap-5">
+      <div className="rounded-3xl border border-line bg-white p-6 shadow-sm sm:p-8">
+        <div className="grid gap-6">
           <Field label={t("new.job")}>
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("new.jobPh")} maxLength={120} className={inputCls} />
           </Field>
@@ -171,7 +171,7 @@ export default function NewAgreement() {
             )}
           </fieldset>
 
-          <div className="rounded-xl bg-slate-50 p-4 text-sm">
+          <div className="rounded-2xl bg-paper p-5 text-sm">
             <Row label={t("new.total")} value={`${formatAmount(total)} USDC`} />
             <Row
               label={t("new.fee", { pct: feeBps === null ? "…" : (feeBps / 100).toFixed(2) })}
@@ -199,7 +199,7 @@ export default function NewAgreement() {
               type="button"
               onClick={submit}
               disabled={busy}
-              className="w-full rounded-full bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-40 sm:w-auto"
+              className="w-full rounded-full bg-ink px-7 py-3 text-sm font-semibold text-white hover:bg-black disabled:opacity-40 sm:w-auto"
             >
               {busy ? t("new.creating") : t("new.create")}
             </button>
@@ -211,7 +211,7 @@ export default function NewAgreement() {
 }
 
 const inputCls =
-  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-100";
+  "w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm focus:border-ink focus:outline-none focus:ring-4 focus:ring-ink/5";
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (

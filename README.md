@@ -8,7 +8,7 @@
 
 Milestone escrow on Stellar for Bolivian freelancers who bring their own clients.
 
-[Contract on testnet](https://stellar.expert/explorer/testnet/contract/CDG4IJBASV35CIFBJ66O6HGCV3VWCLDKHCHAXS2QZFLXRKGP4LRNW2LO) · [Demo script](docs/demo-script.md) · [How the contract works](docs/contract.md)
+**[Live app](https://bolivia-escrow.vercel.app)** · [Contract on testnet](https://stellar.expert/explorer/testnet/contract/CDG4IJBASV35CIFBJ66O6HGCV3VWCLDKHCHAXS2QZFLXRKGP4LRNW2LO) · [Demo script](docs/demo-script.md) · [How the contract works](docs/contract.md)
 
 </div>
 
@@ -42,6 +42,8 @@ Nobody can change the rules after creation, not even the platform. Once money is
 | Agreement: money locked and status per milestone | Live review countdown and "your turn" actions |
 |---|---|
 | ![Agreement](docs/screenshots/agreement.jpg) | ![Milestones](docs/screenshots/milestones.jpg) |
+| **Dashboard** | **Real agreement read from the testnet contract** |
+| ![Dashboard](docs/screenshots/dashboard.jpg) | ![Testnet agreement](docs/screenshots/testnet-agreement.jpg) |
 
 ## Why Stellar
 
@@ -60,6 +62,8 @@ With a database, the platform holds the money and everyone has to trust the plat
 On-chain test: the client locked 100 USDC ([tx](https://stellar.expert/explorer/testnet/tx/e662fa8f39ac084cf8ca0efc32de1ea288a47ea0cffc33049ed2f7554d9cad81)). On approval the contract paid **95 to the freelancer and 5 as the fee** ([tx](https://stellar.expert/explorer/testnet/tx/ebc36775d597b210d0abd29ec1a6b057928ac0caa52c571f3971261ca795c37a)).
 
 ## Try it
+
+Open **https://bolivia-escrow.vercel.app**, or run it locally:
 
 ```bash
 git clone https://github.com/JulioGB01/bolivian_freelancer_platform.git

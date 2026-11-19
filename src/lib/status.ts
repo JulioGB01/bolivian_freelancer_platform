@@ -63,16 +63,16 @@ export function nextStep(agreement: Agreement, m: Milestone, role: Role, nowSecs
 
 export const TONE_BADGE: Record<NextStep["tone"], string> = {
   waiting: "bg-slate-100 text-slate-700 ring-slate-300",
-  safe: "bg-brand-600 text-white ring-brand-600",
+  safe: "bg-lime text-ink ring-lime",
   review: "bg-amber-100 text-amber-800 ring-amber-300",
   danger: "bg-red-100 text-red-800 ring-red-300",
-  done: "bg-slate-800 text-white ring-slate-800",
+  done: "bg-ink text-white ring-ink",
   neutral: "bg-slate-100 text-slate-600 ring-slate-300",
 };
 
 export const TONE_BORDER: Record<NextStep["tone"], string> = {
   waiting: "border-l-slate-300",
-  safe: "border-l-brand-600",
+  safe: "border-l-lime",
   review: "border-l-amber-500",
   danger: "border-l-red-500",
   done: "border-l-slate-400",

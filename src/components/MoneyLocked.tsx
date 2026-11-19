@@ -25,42 +25,42 @@ export default function MoneyLocked({ agreement }: { agreement: Agreement }) {
   const pct = (n: number) => (total > 0 ? (n / total) * 100 : 0);
 
   return (
-    <section className="rounded-xl border border-brand-200 bg-brand-50/60 p-5">
+    <section className="hero-grid relative overflow-hidden rounded-[2rem] bg-ink p-7 text-white sm:p-9">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <p className="text-sm font-medium text-brand-900">
+          <p className="text-xs font-semibold uppercase tracking-wider text-white/60">
             <span aria-hidden>🔒 </span>
             {t("money.lockedNow")}
           </p>
-          <p className="text-3xl font-bold text-brand-900">
-            {formatAmount(locked)} <span className="text-base font-medium text-brand-700">USDC</span>
+          <p className="mt-2 text-6xl font-semibold tracking-[-0.04em] sm:text-7xl">
+            {formatAmount(locked)} <span className="text-lg font-medium text-lime">USDC</span>
           </p>
         </div>
-        <p className="text-sm text-slate-600">{t("money.of", { amount: formatAmount(total) })}</p>
+        <p className="text-sm text-white/60">{t("money.of", { amount: formatAmount(total) })}</p>
       </div>
 
       <div
-        className="mt-4 flex h-3 overflow-hidden rounded-full bg-slate-200"
+        className="mt-6 flex h-2 overflow-hidden rounded-full bg-white/15"
         role="img"
         aria-label={`${t("money.settled", { amount: formatAmount(settled) })}, ${t("money.locked", { amount: formatAmount(locked) })}, ${t("money.unfunded", { amount: formatAmount(unfunded) })}`}
       >
-        <div className="bg-slate-400" style={{ width: `${pct(settled)}%` }} />
-        <div className="bg-brand-600" style={{ width: `${pct(locked)}%` }} />
+        <div className="bg-white/50" style={{ width: `${pct(settled)}%` }} />
+        <div className="bg-lime" style={{ width: `${pct(locked)}%` }} />
       </div>
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
-        <Legend color="bg-slate-400" label={t("money.settled", { amount: formatAmount(settled) })} />
-        <Legend color="bg-brand-600" label={t("money.locked", { amount: formatAmount(locked) })} />
-        <Legend color="bg-slate-300" label={t("money.unfunded", { amount: formatAmount(unfunded) })} />
+      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-white/70">
+        <Legend color="bg-white/50" label={t("money.settled", { amount: formatAmount(settled) })} />
+        <Legend color="bg-lime" label={t("money.locked", { amount: formatAmount(locked) })} />
+        <Legend color="bg-white/15" label={t("money.unfunded", { amount: formatAmount(unfunded) })} />
       </div>
 
-      <p className="mt-3 text-xs text-slate-500">
+      <p className="mt-5 border-t border-white/10 pt-4 text-xs text-white/50">
         {mode === "demo" ? (
           t("money.demoNote")
         ) : (
           <>
             {t("money.verify")}{" "}
             <a
-              className="font-medium text-brand-800 underline"
+              className="font-semibold text-lime underline decoration-lime/40 underline-offset-4"
               href={`${EXPLORER_URL}/contract/${ESCROW_CONTRACT_ID}`}
               target="_blank"
               rel="noreferrer noopener"

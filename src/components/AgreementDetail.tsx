@@ -67,7 +67,7 @@ export default function AgreementDetail({ id }: { id: number }) {
 
   if (missing || loadError) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
+      <div className="rounded-3xl border border-line bg-white p-8 text-center">
         <p className="text-slate-600">{missing ? t("ag.notFound", { id }) : loadError}</p>
         <Link href="/dashboard" className="mt-2 inline-block text-sm text-brand-700 underline">
           {t("ag.back")}
@@ -88,7 +88,7 @@ export default function AgreementDetail({ id }: { id: number }) {
           {t("ag.back")}
         </Link>
         <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">{agreement.title}</h1>
+          <h1 className="text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">{agreement.title}</h1>
           <button
             type="button"
             onClick={copyLink}
