@@ -13,6 +13,7 @@ const CONTRACT_ERRORS: Record<number, MsgKey> = {
   9: "err.SameParty",
   10: "err.ReviewWindowOpen",
   11: "err.ReviewWindowClosed",
+  12: "err.InvalidReviewWindow",
 };
 
 const NAMED: Record<string, MsgKey> = {
@@ -27,6 +28,7 @@ const NAMED: Record<string, MsgKey> = {
   SameParty: "err.SameParty",
   ReviewWindowOpen: "err.ReviewWindowOpen",
   ReviewWindowClosed: "err.ReviewWindowClosed",
+  InvalidReviewWindow: "err.InvalidReviewWindow",
   InsufficientBalance: "err.InsufficientBalance",
   NoTrustline: "err.NoTrustline",
   NoAccount: "err.NoAccount",

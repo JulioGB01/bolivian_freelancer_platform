@@ -2,24 +2,26 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getEscrow, notifyEscrowChanged } from "@/lib/escrow";
+import { StrKey } from "@stellar/stellar-sdk";
+import { getEscrow, MAX_REVIEW_WINDOW_SECS, MIN_REVIEW_WINDOW_SECS, notifyEscrowChanged } from "@/lib/escrow";
 import { errorMessage } from "@/lib/errors";
 import { BPS_DENOMINATOR, formatAmount, parseAmount } from "@/lib/format";
 import { useT, type MsgKey } from "@/lib/i18n";
 import { useMode } from "@/lib/mode";
 import { useWallet } from "@/lib/useWallet";
+import { DEMO_IDENTITIES } from "@/lib/wallet";
 
-// Review window choices. Default 1 day; 1 minute is offered for testing claim / dispute quickly.
-const REVIEW_WINDOWS: number[] = [60, 3600, 86400, 3 * 86400, 7 * 86400];
+// Review window choices bounded to contract rules (1 hour – 30 days).
+const REVIEW_WINDOWS: number[] = [3600, 86400, 3 * 86400, 7 * 86400, 30 * 86400];
 const DEFAULT_WINDOW = 86400;
 const MAX_MILESTONES = 10;
 const AMOUNT_RE = /^\d+(\.\d{1,7})?$/;
-const STELLAR_ACCOUNT_RE = /^G[A-Z2-7]{55}$/;
+const VALID_DEMO_ADDRS = new Set(DEMO_IDENTITIES.map((d) => d.address));
 
 export default function NewAgreement() {
   const { t } = useT();
   const mode = useMode();
-  const { wallet } = useWallet();
+  const { wallet, connectReal, connectAs } = useWallet();
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [client, setClient] = useState("");
@@ -39,7 +41,28 @@ export default function NewAgreement() {
 
   if (!wallet) {
     return (
-      <div className=" border border-line bg-white p-8 text-center text-slate-600">{t("new.connect")}</div>
+      <div className="border border-line bg-white p-8 text-center text-slate-600">
+        <p>{t("new.connect")}</p>
+        <div className="mt-5 flex flex-wrap justify-center gap-3">
+          {mode === "testnet" ? (
+            <button
+              type="button"
+              onClick={() => void connectReal().catch(() => undefined)}
+              className="bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-black"
+            >
+              {t("wallet.connect")}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => connectAs(DEMO_IDENTITIES[0])}
+              className="bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-black"
+            >
+              {t("wallet.connectAs")} {t("demo.freelancer")}
+            </button>
+          )}
+        </div>
+      </div>
     );
   }
 
@@ -52,8 +75,12 @@ export default function NewAgreement() {
   const problems: MsgKey[] = [];
   if (!title.trim()) problems.push("new.errTitle");
   if (!clientAddr) problems.push("new.errClient");
-  else if (mode === "testnet" && !STELLAR_ACCOUNT_RE.test(clientAddr)) problems.push("new.errClientG");
+  else if (mode === "testnet" && !StrKey.isValidEd25519PublicKey(clientAddr)) problems.push("new.errClientG");
+  else if (mode === "demo" && !VALID_DEMO_ADDRS.has(clientAddr)) problems.push("new.errClientDemo");
   else if (clientAddr === wallet.address) problems.push("new.errSame");
+  if (reviewWindowSecs < MIN_REVIEW_WINDOW_SECS || reviewWindowSecs > MAX_REVIEW_WINDOW_SECS) {
+    problems.push("new.errWindow");
+  }
   if (milestones.some((m) => !m.title.trim())) problems.push("new.errMsTitle");
   if (milestones.some((m) => !amountValid(m.amount))) problems.push("new.errAmount");
 

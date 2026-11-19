@@ -1,7 +1,7 @@
 "use client";
 
 // Review → sign → receipt, for every money action (pattern used by DeFi apps).
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { EXPLORER_URL } from "@/lib/config";
 import { getEscrow } from "@/lib/escrow";
 import { errorMessage } from "@/lib/errors";
@@ -32,6 +32,14 @@ export default function ReviewDialog({ request, onClose }: { request: ReviewRequ
   const [err, setErr] = useState("");
   const [txHash, setTxHash] = useState<string | null>(null);
 
+  const close = useCallback(() => {
+    if (phase === "done") request?.onDone?.();
+    setPhase("review");
+    setErr("");
+    setTxHash(null);
+    onClose();
+  }, [phase, request, onClose]);
+
   useEffect(() => {
     if (!request) return;
     const onKey = (e: KeyboardEvent) => {
@@ -39,17 +47,9 @@ export default function ReviewDialog({ request, onClose }: { request: ReviewRequ
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  });
+  }, [request, phase, close]);
 
   if (!request) return null;
-
-  function close() {
-    if (phase === "done") request?.onDone?.();
-    setPhase("review");
-    setErr("");
-    setTxHash(null);
-    onClose();
-  }
 
   async function confirm() {
     if (!request) return;
@@ -66,7 +66,14 @@ export default function ReviewDialog({ request, onClose }: { request: ReviewRequ
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-3 backdrop-blur-sm sm:items-center" role="dialog" aria-modal="true">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-3 backdrop-blur-sm sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && phase !== "pending") close();
+      }}
+    >
       <div className="w-full max-w-md overflow-hidden bg-white text-left text-ink shadow-2xl">
         <div className="flex items-start justify-between gap-4 border-b border-line px-6 py-5">
           <h2 className="text-xl font-semibold tracking-tight">{phase === "done" ? t("rv.done") : t(request.title)}</h2>

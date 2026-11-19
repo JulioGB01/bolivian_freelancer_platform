@@ -1,6 +1,11 @@
 #![cfg(test)]
 use super::*;
-use soroban_sdk::{testutils::{Address as _, Ledger}, token::StellarAssetClient, token::TokenClient, Env};
+use soroban_sdk::{
+    testutils::{Address as _, Ledger},
+    token::StellarAssetClient,
+    token::TokenClient,
+    Env,
+};
 
 fn setup() -> (Env, FaucetClient<'static>, TokenClient<'static>, Address) {
     let env = Env::default();

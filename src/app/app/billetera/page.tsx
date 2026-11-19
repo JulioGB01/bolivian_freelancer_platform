@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ESCROW_CHANGED } from "@/lib/escrow";
+import { ESCROW_CHANGED, notifyEscrowChanged } from "@/lib/escrow";
 import { errorMessage } from "@/lib/errors";
 import { formatAmount } from "@/lib/format";
 import { useT } from "@/lib/i18n";
@@ -37,6 +37,7 @@ export default function WalletPage() {
     try {
       await fn();
       await load();
+      notifyEscrowChanged();
     } catch (e) {
       setErr(errorMessage(e, t));
     } finally {

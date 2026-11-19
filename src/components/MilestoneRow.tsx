@@ -57,7 +57,9 @@ export default function MilestoneRow({
         submit: role === "freelancer" && milestone.status === "Funded",
         approve: role === "client" && milestone.status === "Submitted",
         claim: role === "freelancer" && milestone.status === "Submitted" && now >= deadline,
-        dispute: role === "client" && milestone.status === "Submitted" && now < deadline,
+        dispute:
+          role === "client" &&
+          (milestone.status === "Funded" || (milestone.status === "Submitted" && now < deadline)),
         resolve: role === "arbiter" && milestone.status === "Disputed",
         refund: role === "freelancer" && (milestone.status === "Funded" || milestone.status === "Submitted"),
       };
@@ -105,7 +107,7 @@ export default function MilestoneRow({
         <p className="mt-1 text-xs text-amber-700">
           {now < deadline ? (
             <>
-              {t("ms.closesIn")} <strong>{formatCountdown(deadline, now)}</strong> ({formatDate(deadline, dateLocale)})
+              {t("ms.closesIn")} <strong>{formatCountdown(deadline, now, lang)}</strong> ({formatDate(deadline, dateLocale)})
             </>
           ) : (
             t("ms.closedOn", { date: formatDate(deadline, dateLocale) })
@@ -153,31 +155,41 @@ export default function MilestoneRow({
           )}
 
           {can.submit && (
-            <>
-              <input
-                value={evidence}
-                onChange={(e) => setEvidence(e.target.value)}
-                placeholder={t("ms.workPh")}
-                aria-label={t("ms.workPh")}
-                className="min-w-0 flex-1 border border-line px-4 py-2 text-sm sm:max-w-sm"
-              />
-              <ActionButton
-                disabled={!evidenceIsLink}
-                onClick={() =>
-                  ask({
-                    title: "rv.submit",
-                    rows: [
-                      { label: t("ms.milestone", { n: index + 1 }), value: milestone.title },
-                      { label: t("ms.delivered"), value: evidence.trim() },
-                    ],
-                    what: "rv.whatSubmit",
-                    action: () => getEscrow().submitMilestone(agreement.id, index, evidence.trim()),
-                  })
-                }
-              >
-                {t("ms.submit")}
-              </ActionButton>
-            </>
+            <div className="flex w-full flex-col gap-1.5 sm:flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  value={evidence}
+                  onChange={(e) => setEvidence(e.target.value)}
+                  placeholder={t("ms.workPh")}
+                  aria-label={t("ms.workPh")}
+                  aria-invalid={evidence.trim().length > 0 && !evidenceIsLink}
+                  className={`min-w-0 flex-1 border px-4 py-2 text-sm sm:max-w-sm ${
+                    evidence.trim().length > 0 && !evidenceIsLink ? "border-red-400" : "border-line"
+                  }`}
+                />
+                <ActionButton
+                  disabled={!evidenceIsLink}
+                  onClick={() =>
+                    ask({
+                      title: "rv.submit",
+                      rows: [
+                        { label: t("ms.milestone", { n: index + 1 }), value: milestone.title },
+                        { label: t("ms.delivered"), value: evidence.trim() },
+                      ],
+                      what: "rv.whatSubmit",
+                      action: () => getEscrow().submitMilestone(agreement.id, index, evidence.trim()),
+                    })
+                  }
+                >
+                  {t("ms.submit")}
+                </ActionButton>
+              </div>
+              {evidence.trim().length > 0 && !evidenceIsLink && (
+                <p className="text-xs text-red-600" role="alert">
+                  {t("ms.errEvidenceUrl")}
+                </p>
+              )}
+            </div>
           )}
 
           {can.approve && (
@@ -201,32 +213,37 @@ export default function MilestoneRow({
           )}
 
           {can.dispute && (
-            <>
-              <input
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder={t("ms.reasonPh")}
-                aria-label={t("ms.reasonPh")}
-                className="min-w-0 flex-1 border border-red-200 px-4 py-2 text-sm sm:max-w-xs"
-              />
-              <ActionButton
-                danger
-                disabled={!reason.trim()}
-                onClick={() =>
-                  ask({
-                    title: "rv.dispute",
-                    rows: [
-                      { label: t("rv.amount"), value: usd(milestone.amount) },
-                      { label: t("ms.disputeReason"), value: reason.trim() },
-                    ],
-                    what: "rv.whatDispute",
-                    action: () => getEscrow().disputeMilestone(agreement.id, index, reason.trim()),
-                  })
-                }
-              >
-                {t("ms.dispute")}
-              </ActionButton>
-            </>
+            <div className="flex w-full flex-col gap-1.5 sm:w-auto sm:flex-1">
+              {milestone.status === "Funded" && (
+                <p className="text-xs text-amber-700">{t("ms.disputeFundedHint")}</p>
+              )}
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder={t("ms.reasonPh")}
+                  aria-label={t("ms.reasonPh")}
+                  className="min-w-0 flex-1 border border-red-200 px-4 py-2 text-sm sm:max-w-xs"
+                />
+                <ActionButton
+                  danger
+                  disabled={!reason.trim()}
+                  onClick={() =>
+                    ask({
+                      title: "rv.dispute",
+                      rows: [
+                        { label: t("rv.amount"), value: usd(milestone.amount) },
+                        { label: t("ms.disputeReason"), value: reason.trim() },
+                      ],
+                      what: "rv.whatDispute",
+                      action: () => getEscrow().disputeMilestone(agreement.id, index, reason.trim()),
+                    })
+                  }
+                >
+                  {t("ms.dispute")}
+                </ActionButton>
+              </div>
+            </div>
           )}
 
           {can.resolve && (

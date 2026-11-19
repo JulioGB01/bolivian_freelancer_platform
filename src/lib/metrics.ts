@@ -14,6 +14,10 @@ export interface ProtocolStats {
   milestonesPaid: number;
 }
 
+export const TRUSTED_MIN_MILESTONES = 5;
+/** $100 USDC in 7-decimal smallest units (prevents 1-stroop Sybil gaming). */
+export const TRUSTED_MIN_VOLUME = 1_000_000_000;
+
 export function protocolStats(list: Agreement[]): ProtocolStats {
   let locked = 0;
   let paid = 0;
@@ -24,6 +28,11 @@ export function protocolStats(list: Agreement[]): ProtocolStats {
       if (m.status === "Released") {
         paid += m.amount - feeOf(m.amount, a.feeBps);
         milestonesPaid += 1;
+      } else if (m.status === "Resolved") {
+        const bps = m.resolvedFreelancerBps ?? 5000;
+        const freelancerPart = Math.floor((m.amount * bps) / BPS_DENOMINATOR);
+        paid += freelancerPart - feeOf(freelancerPart, a.feeBps);
+        if (bps > 0) milestonesPaid += 1;
       }
     }
   }
@@ -44,9 +53,17 @@ export interface FreelancerStats {
   level: Level;
 }
 
-/** Level rule (shown to users): New = 0 paid milestones, Active = 1 to 4, Trusted = 5 or more. */
-export function levelFor(milestonesPaid: number): Level {
-  return milestonesPaid >= 5 ? "trusted" : milestonesPaid >= 1 ? "active" : "new";
+/**
+ * Level rule (shown to users):
+ * - New: 0 paid milestones
+ * - Active: >= 1 paid milestone (or < $100 USDC net volume)
+ * - Trusted: >= 5 paid milestones AND >= $100 USDC net volume (prevents 1-stroop Sybil gaming)
+ */
+export function levelFor(milestonesPaid: number, earnedUnits: number = 0): Level {
+  if (milestonesPaid >= TRUSTED_MIN_MILESTONES && earnedUnits >= TRUSTED_MIN_VOLUME) {
+    return "trusted";
+  }
+  return milestonesPaid >= 1 ? "active" : "new";
 }
 
 export function freelancerStats(all: Agreement[], address: string): FreelancerStats {
@@ -62,6 +79,11 @@ export function freelancerStats(all: Agreement[], address: string): FreelancerSt
       if (m.status === "Released") {
         milestonesPaid += 1;
         earned += m.amount - feeOf(m.amount, a.feeBps);
+      } else if (m.status === "Resolved") {
+        const bps = m.resolvedFreelancerBps ?? 5000;
+        const freelancerPart = Math.floor((m.amount * bps) / BPS_DENOMINATOR);
+        earned += freelancerPart - feeOf(freelancerPart, a.feeBps);
+        if (bps > 0) milestonesPaid += 1;
       }
       if (m.status === "Disputed" || m.status === "Resolved") disputes += 1;
       if (m.status === "Refunded") refunds += 1;
@@ -76,6 +98,6 @@ export function freelancerStats(all: Agreement[], address: string): FreelancerSt
     refunds,
     clients: new Set(mine.map((a) => a.client)).size,
     since: mine.length ? Math.min(...mine.map((a) => a.createdAt)) : 0,
-    level: levelFor(milestonesPaid),
+    level: levelFor(milestonesPaid, earned),
   };
 }

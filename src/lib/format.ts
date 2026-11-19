@@ -14,14 +14,18 @@ export function formatAmount(units: number): string {
   return `${whole.toLocaleString("en-US")}.${decimals}`;
 }
 
-/** Parse a decimal string entered by the user into an integer smallest-unit amount. */
+const DECIMAL_RE = /^(?:\d+(?:\.\d*)?|\.\d+)$/;
+
+/** Parse a non-negative decimal string entered by the user into an integer smallest-unit amount. */
 export function parseAmount(input: string): number {
   const clean = input.trim();
-  if (clean === "" || Number.isNaN(Number(clean))) return 0;
-  const [whole, frac = ""] = clean.split(".");
-  const w = BigInt(whole || "0");
-  const f = BigInt((frac + "0000000").slice(0, USDC_DECIMALS) || "0");
-  return Number(w * BigInt(10 ** USDC_DECIMALS) + f);
+  if (!DECIMAL_RE.test(clean)) return 0;
+  const [wholeRaw = "0", fracRaw = ""] = clean.split(".");
+  const w = BigInt(wholeRaw || "0");
+  const f = BigInt((fracRaw + "0000000").slice(0, USDC_DECIMALS) || "0");
+  const total = w * BigInt(10 ** USDC_DECIMALS) + f;
+  if (total > BigInt(Number.MAX_SAFE_INTEGER)) return 0;
+  return Number(total);
 }
 
 /** Shorten a Stellar/demo address for display: GABC…XYZ. */
@@ -36,10 +40,10 @@ export function formatDate(secs: number, locale?: string): string {
   return new Date(secs * 1000).toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" });
 }
 
-/** Human countdown like "2h 14m" or "expired". */
-export function formatCountdown(deadlineSecs: number, nowSecs: number): string {
+/** Human countdown like "2h 14m" or localized "vencido" / "expired". */
+export function formatCountdown(deadlineSecs: number, nowSecs: number, lang: "es" | "en" = "es"): string {
   const diff = deadlineSecs - nowSecs;
-  if (diff <= 0) return "expired";
+  if (diff <= 0) return lang === "en" ? "expired" : "vencido";
   const h = Math.floor(diff / 3600);
   const m = Math.floor((diff % 3600) / 60);
   if (h > 0) return `${h}h ${m}m`;

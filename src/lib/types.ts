@@ -27,6 +27,8 @@ export interface Milestone {
   /** Unix timestamp (seconds) of the last submission; 0 if never submitted. */
   submittedAt: number;
   disputeReason: string;
+  /** Basis points (0..10000) awarded to the freelancer when Resolved. */
+  resolvedFreelancerBps?: number;
 }
 
 export interface Agreement {
@@ -37,6 +39,10 @@ export interface Agreement {
   reviewWindowSecs: number;
   /** Fee snapshot (basis points) taken at creation. */
   feeBps: number;
+  /** Pinned arbiter address snapshotted at creation (falls back to config.arbiter on legacy agreements). */
+  arbiter?: string;
+  /** Pinned fee recipient snapshotted at creation. */
+  feeRecipient?: string;
   milestones: Milestone[];
   createdAt: number;
 }

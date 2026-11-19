@@ -22,4 +22,8 @@ pub enum Error {
     ReviewWindowOpen = 10,
     /// `dispute_milestone` called after the review window ended.
     ReviewWindowClosed = 11,
+    /// `review_window_secs` is outside `[MIN_REVIEW_WINDOW_SECS, MAX_REVIEW_WINDOW_SECS]`.
+    InvalidReviewWindow = 12,
+    /// A text field exceeds its maximum allowed length.
+    StringTooLong = 13,
 }

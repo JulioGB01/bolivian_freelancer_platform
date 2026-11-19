@@ -11,6 +11,11 @@ use soroban_sdk::{contract, contracterror, contractimpl, contracttype, token, Ad
 pub const DRIP_AMOUNT: i128 = 10_000_000_000;
 /// Minimum time between two drips to the same account.
 pub const COOLDOWN_SECS: u64 = 86_400;
+/// ~30 days of ledgers at ~5s/ledger (re-extend below ~10 days).
+const INSTANCE_TTL_THRESHOLD: u32 = 172_800;
+const INSTANCE_TTL_EXTEND_TO: u32 = 518_400;
+/// ~24 hours of ledgers at ~5s/ledger for per-address cooldown entries.
+const COOLDOWN_TTL_LEDGERS: u32 = 17_280;
 
 #[contracttype]
 enum DataKey {
@@ -32,6 +37,9 @@ pub struct Faucet;
 impl Faucet {
     pub fn __constructor(env: Env, token: Address) {
         env.storage().instance().set(&DataKey::Token, &token);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_EXTEND_TO);
     }
 
     /// Sends DRIP_AMOUNT of the token to `to`. Requires `to` to sign.
@@ -40,15 +48,23 @@ impl Faucet {
         let now = env.ledger().timestamp();
         let key = DataKey::LastDrip(to.clone());
         if let Some(last) = env.storage().temporary().get::<_, u64>(&key) {
-            if now < last + COOLDOWN_SECS {
+            if now < last.saturating_add(COOLDOWN_SECS) {
                 return Err(Error::TooSoon);
             }
         }
         env.storage().temporary().set(&key, &now);
-        env.storage().temporary().extend_ttl(&key, 17_280, 17_280);
-        env.storage().instance().extend_ttl(100_000, 500_000);
+        env.storage()
+            .temporary()
+            .extend_ttl(&key, COOLDOWN_TTL_LEDGERS, COOLDOWN_TTL_LEDGERS);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_EXTEND_TO);
         let token: Address = env.storage().instance().get(&DataKey::Token).unwrap();
-        token::Client::new(&env, &token).transfer(&env.current_contract_address(), &to, &DRIP_AMOUNT);
+        token::Client::new(&env, &token).transfer(
+            &env.current_contract_address(),
+            &to,
+            &DRIP_AMOUNT,
+        );
         Ok(())
     }
 

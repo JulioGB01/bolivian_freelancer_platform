@@ -76,6 +76,10 @@ async function getKit(): Promise<Kit> {
         import("@creit-tech/stellar-wallets-kit/modules/hana"),
         import("@creit-tech/stellar-wallets-kit/modules/rabet"),
       ]);
+      const matchedNetwork =
+        (Object.values(types.Networks) as string[]).includes(NETWORK_PASSPHRASE)
+          ? (NETWORK_PASSPHRASE as typeof types.Networks.TESTNET)
+          : types.Networks.TESTNET;
       StellarWalletsKit.init({
         modules: [
           new varial.VarialModule(),
@@ -85,7 +89,7 @@ async function getKit(): Promise<Kit> {
           new hana.HanaModule(),
           new rabet.RabetModule(),
         ],
-        network: types.Networks.TESTNET,
+        network: matchedNetwork,
         theme: types.SwkAppLightTheme,
       });
       return StellarWalletsKit;
