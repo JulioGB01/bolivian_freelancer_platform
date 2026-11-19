@@ -36,7 +36,7 @@ export default function NavLinks() {
   }, [inApp, mode]);
 
   const pill = (active: boolean) =>
-    `whitespace-nowrap rounded-full px-3 py-1.5 transition ${active ? "bg-ink font-medium text-white" : "text-ink/60 hover:bg-paper hover:text-ink"}`;
+    `whitespace-nowrap px-3 py-1.5 transition ${active ? "bg-ink font-medium text-white" : "text-ink/60 hover:bg-paper hover:text-ink"}`;
 
   if (!inApp) {
     const links: { href: string; label: MsgKey }[] = [
@@ -63,7 +63,7 @@ export default function NavLinks() {
 
   return (
     <nav className="flex items-center gap-1 overflow-x-auto text-sm">
-      <div className="flex rounded-full bg-paper p-0.5">
+      <div className="flex bg-paper p-0.5">
         {areas.map((a) => (
           <Link
             key={a.href}
@@ -101,9 +101,9 @@ export function HeaderRight() {
       {inApp ? (
         <WalletButton />
       ) : (
-        <Link href="/app" className="group inline-flex items-center gap-2 rounded-full bg-ink py-1.5 pl-4 pr-1.5 text-sm font-semibold text-white hover:bg-black">
+        <Link href="/app" className="group inline-flex items-center gap-2 bg-ink py-1.5 pl-4 pr-1.5 text-sm font-semibold text-white hover:bg-black">
           {t("nav.openApp")}
-          <span className="grid h-7 w-7 place-items-center rounded-full bg-lime text-ink transition group-hover:rotate-45" aria-hidden>
+          <span className="grid h-7 w-7 place-items-center bg-lime text-ink transition group-hover:translate-x-0.5" aria-hidden>
             ↗
           </span>
         </Link>

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Instrument_Serif, Inter_Tight } from "next/font/google";
+import { Instrument_Serif, Inter_Tight, JetBrains_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import BrandMark from "@/components/BrandMark";
@@ -7,6 +7,7 @@ import { FooterText, ModeBanner } from "@/components/Chrome";
 import NavLinks, { HeaderRight } from "@/components/NavLinks";
 
 const interTight = Inter_Tight({ subsets: ["latin"], variable: "--font-inter-tight", display: "swap" });
+const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono", display: "swap" });
 const instrumentSerif = Instrument_Serif({
   subsets: ["latin"],
   weight: "400",
@@ -23,11 +24,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`${interTight.variable} ${instrumentSerif.variable}`}>
+    <html lang="es" className={`${interTight.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable}`}>
       <body className="flex min-h-screen flex-col bg-paper font-sans text-ink antialiased">
         <div className="bo-stripe h-1 w-full" aria-hidden />
-        <header className="sticky top-0 z-30 px-3 pt-3 sm:px-5">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-3xl border border-white/60 bg-white/80 px-3 py-2 sm:rounded-full sm:pl-3 sm:pr-2 shadow-[0_8px_30px_rgb(0_0_0/0.06)] backdrop-blur-xl">
+        <header className="sticky top-0 z-30 border-b border-ink/10 bg-paper/90 backdrop-blur-xl">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-3">
             <Link href="/" className="flex items-center gap-2.5 pl-1">
               <BrandMark size={30} />
               <span className="text-[17px] font-semibold tracking-tight">
@@ -50,7 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <p className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
                 Bolivia<span className="font-serif font-normal italic text-lime">Escrow</span>
               </p>
-              <div className="bo-stripe mt-4 h-1 w-24 rounded-full" aria-hidden />
+              <div className="bo-stripe mt-4 h-1 w-24" aria-hidden />
             </div>
             <div className="flex flex-col gap-1 text-right text-xs">
               <FooterText />

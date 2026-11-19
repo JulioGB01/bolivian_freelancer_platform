@@ -113,12 +113,12 @@ export default function WalletButton() {
           type="button"
           onClick={onConnectReal}
           disabled={busy === "connect"}
-          className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-black disabled:opacity-60"
+          className=" bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-black disabled:opacity-60"
         >
           {busy === "connect" ? t("wallet.connecting") : t("wallet.connect")}
         </button>
         {open && err && (
-          <div className="absolute right-0 z-20 mt-2 w-72 rounded-lg border border-red-200 bg-white p-3 text-xs text-red-700 shadow-lg">
+          <div className="absolute right-0 z-20 mt-2 w-72 border border-red-200 bg-white p-3 text-xs text-red-700 shadow-lg">
             {err}
           </div>
         )}
@@ -133,9 +133,9 @@ export default function WalletButton() {
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
-          className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50"
+          className="flex items-center gap-2 border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50"
         >
-          <span className="h-2 w-2 rounded-full bg-brand-500" aria-hidden />
+          <span className="h-2 w-2 bg-brand-500" aria-hidden />
           <span className="font-medium text-slate-800">
             {wallet.kind === "testnet" ? shortAddress(wallet.address) : t(roleKey)}
           </span>
@@ -147,14 +147,14 @@ export default function WalletButton() {
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
-          className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-black"
+          className=" bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-black"
         >
           {t("wallet.connect")}
         </button>
       )}
 
       {open && (
-        <div className="absolute right-0 z-20 mt-2 w-72 rounded-3xl border border-line bg-white p-1 shadow-lg">
+        <div className="absolute right-0 z-20 mt-2 w-72 border border-line bg-white p-1 shadow-lg">
           {wallet && (
             <div className="border-b border-slate-100 px-3 py-2 text-xs text-slate-500">
               <div className="flex items-center justify-between gap-2">
@@ -230,7 +230,7 @@ export default function WalletButton() {
                     connectAs(id);
                     setOpen(false);
                   }}
-                  className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm hover:bg-slate-100 ${
+                  className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-slate-100 ${
                     wallet?.address === id.address ? "font-semibold text-brand-700" : "text-slate-700"
                   }`}
                 >
@@ -247,7 +247,7 @@ export default function WalletButton() {
                 disconnectWallet();
                 setOpen(false);
               }}
-              className="mt-1 block w-full rounded-md border-t border-slate-100 px-3 py-2 text-left text-sm text-slate-500 hover:bg-slate-100"
+              className="mt-1 block w-full border-t border-slate-100 px-3 py-2 text-left text-sm text-slate-500 hover:bg-slate-100"
             >
               {t("wallet.disconnect")}
             </button>
@@ -285,7 +285,7 @@ function SetupRow({
           type="button"
           onClick={onClick}
           disabled={busy || disabled}
-          className="whitespace-nowrap rounded-full border border-brand-600 px-2.5 py-1 font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-40"
+          className="whitespace-nowrap border border-brand-600 px-2.5 py-1 font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-40"
         >
           {busy ? "…" : action}
         </button>

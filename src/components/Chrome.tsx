@@ -14,14 +14,14 @@ export function LangToggle() {
     document.documentElement.lang = lang;
   }, [lang]);
   return (
-    <div className="flex rounded-full bg-paper p-0.5 text-xs font-semibold" role="group" aria-label="Language">
+    <div className="flex bg-paper p-0.5 text-xs font-semibold" role="group" aria-label="Language">
       {(["es", "en"] as const).map((l) => (
         <button
           key={l}
           type="button"
           onClick={() => setLang(l)}
           aria-pressed={lang === l}
-          className={`rounded-full px-2.5 py-1.5 uppercase transition ${lang === l ? "bg-ink text-white" : "text-ink/50 hover:text-ink"}`}
+          className={` px-2.5 py-1.5 uppercase transition ${lang === l ? "bg-ink text-white" : "text-ink/50 hover:text-ink"}`}
         >
           {l}
         </button>
@@ -34,13 +34,13 @@ export function ModeBanner() {
   const { t } = useT();
   const mode = useMode();
   const pathname = usePathname();
-  // Only inside the app and on verify pages; the public website does not depend on the mode.
-  if (!(pathname.startsWith("/app") || pathname.startsWith("/verificar/"))) return null;
+  // Only inside the app; public pages show their own data source.
+  if (!pathname.startsWith("/app")) return null;
   const demo = mode === "demo";
   return (
     <div className="mx-auto mt-3 flex max-w-6xl flex-wrap items-center justify-center gap-x-2 gap-y-1 px-5 text-center text-xs text-ink/60">
       <span
-        className={`rounded-full px-2 py-0.5 font-semibold uppercase tracking-wide ${demo ? "bg-bo-yellow text-ink" : "bg-ink text-lime"}`}
+        className={` px-2 py-0.5 font-semibold uppercase tracking-wide ${demo ? "bg-bo-yellow text-ink" : "bg-ink text-lime"}`}
       >
         {demo ? t("banner.demo") : t("banner.testnet")}
       </span>
@@ -96,10 +96,10 @@ export function ArrowLink({
   return (
     <Link
       href={href}
-      className={`group inline-flex items-center gap-3 rounded-full py-2 pl-5 pr-2 text-sm font-semibold transition ${styles}`}
+      className={`group inline-flex items-center gap-3 py-2 pl-5 pr-2 text-sm font-semibold transition ${styles}`}
     >
       {children}
-      <span className={`grid h-8 w-8 place-items-center rounded-full transition group-hover:rotate-45 ${dot}`} aria-hidden>
+      <span className={`grid h-8 w-8 place-items-center transition group-hover:translate-x-0.5 ${dot}`} aria-hidden>
         ↗
       </span>
     </Link>

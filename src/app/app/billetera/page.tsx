@@ -60,21 +60,21 @@ export default function WalletPage() {
       </div>
 
       {mode === "demo" ? (
-        <div className="rounded-3xl border border-line bg-white p-8">
+        <div className=" border border-line bg-white p-8">
           <p className="text-ink/70">{t("wal.demo")}</p>
-          <button type="button" onClick={() => setMode("testnet")} className="mt-5 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-black">
+          <button type="button" onClick={() => setMode("testnet")} className="mt-5 bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-black">
             {t("wal.useTestnet")} ↗
           </button>
         </div>
       ) : !wallet ? (
-        <div className="rounded-3xl border border-line bg-white p-8 text-center">
-          <button type="button" onClick={() => void connectReal().catch(() => undefined)} className="rounded-full bg-ink px-6 py-3 text-sm font-semibold text-white hover:bg-black">
+        <div className=" border border-line bg-white p-8 text-center">
+          <button type="button" onClick={() => void connectReal().catch(() => undefined)} className=" bg-ink px-6 py-3 text-sm font-semibold text-white hover:bg-black">
             {t("wallet.connect")}
           </button>
         </div>
       ) : (
         <>
-          <div className="hero-grid rounded-[2rem] bg-ink p-8 text-white">
+          <div className="hero-grid bg-ink p-8 text-white">
             <p className="text-xs uppercase tracking-wider text-white/50">{t("wallet.balance")}</p>
             <p className="mt-2 text-5xl font-semibold tracking-tight">
               {formatAmount(acct?.usdc ?? 0)} <span className="text-lg text-lime">USDC</span>
@@ -83,9 +83,9 @@ export default function WalletPage() {
           </div>
           <ol className="space-y-3">
             {steps.map((s, i) => (
-              <li key={s.key} className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-line bg-white p-5">
+              <li key={s.key} className="flex flex-wrap items-center justify-between gap-4 border border-line bg-white p-5">
                 <div className="flex items-center gap-4">
-                  <span className={`grid h-9 w-9 place-items-center rounded-full text-sm font-bold ${s.done ? "bg-lime text-ink" : "bg-paper text-ink/60"}`}>
+                  <span className={`grid h-9 w-9 place-items-center text-sm font-bold ${s.done ? "bg-lime text-ink" : "bg-paper text-ink/60"}`}>
                     {s.done ? "✓" : i + 1}
                   </span>
                   <div>
@@ -98,7 +98,7 @@ export default function WalletPage() {
                     type="button"
                     onClick={() => step(s.key, s.run)}
                     disabled={busy !== null || s.disabled}
-                    className="rounded-full bg-ink px-5 py-2 text-sm font-semibold text-white hover:bg-black disabled:opacity-40"
+                    className=" bg-ink px-5 py-2 text-sm font-semibold text-white hover:bg-black disabled:opacity-40"
                   >
                     {busy === s.key ? "…" : s.action}
                   </button>
@@ -106,7 +106,7 @@ export default function WalletPage() {
               </li>
             ))}
           </ol>
-          {err && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{err}</p>}
+          {err && <p className=" bg-red-50 px-3 py-2 text-sm text-red-700">{err}</p>}
         </>
       )}
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowLink } from "@/components/Chrome";
+import ProtocolStats from "@/components/ProtocolStats";
 import { EXPLORER_URL, ESCROW_CONTRACT_ID } from "@/lib/config";
 import { useT, type MsgKey } from "@/lib/i18n";
 import { setMode, useMode, type Mode } from "@/lib/mode";
@@ -30,12 +31,12 @@ export default function Home() {
     <div className="space-y-24 pb-8 sm:space-y-32">
       {/* Hero */}
       <section className="px-3 pt-4 sm:px-5">
-        <div className="hero-grid relative mx-auto max-w-6xl overflow-hidden rounded-[2rem] bg-ink text-white sm:rounded-[2.5rem]">
-          <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-lime/20 blur-3xl" aria-hidden />
+        <div className="hero-grid relative mx-auto max-w-6xl overflow-hidden bg-ink text-white">
+          <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 bg-lime/20 blur-3xl" aria-hidden />
           <div className="relative grid items-center gap-12 px-6 py-14 sm:px-12 sm:py-20 lg:grid-cols-[1.25fr_1fr]">
             <div>
-              <p className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1 text-xs font-medium text-white/70">
-                <span className="bo-stripe inline-block h-2 w-5 rounded-sm" aria-hidden />
+              <p className="inline-flex items-center gap-2 border border-white/15 px-3 py-1 text-xs font-medium text-white/70">
+                <span className="bo-stripe inline-block h-2 w-5" aria-hidden />
                 {t("home.badge")}
               </p>
               <h1 className="mt-6 text-[2.75rem] font-semibold leading-[0.98] tracking-[-0.035em] sm:text-6xl lg:text-7xl">
@@ -56,22 +57,22 @@ export default function Home() {
 
             {/* Product mockup with example values */}
             <div className="relative mx-auto w-full max-w-sm" aria-hidden>
-              <div className="absolute -bottom-6 -left-6 z-10 hidden rotate-[-4deg] rounded-2xl bg-bo-yellow px-4 py-3 text-ink shadow-xl sm:block">
+              <div className="absolute -bottom-6 -left-6 z-10 hidden rotate-[-4deg] bg-bo-yellow px-4 py-3 text-ink shadow-xl sm:block">
                 <p className="text-[10px] font-semibold uppercase tracking-wider">{t("home.verified")}</p>
                 <p className="font-serif text-xl italic">✓ on-chain</p>
               </div>
-              <div className="rounded-[1.75rem] bg-white p-5 text-ink shadow-2xl">
+              <div className=" bg-white p-5 text-ink shadow-2xl">
                 <div className="flex items-center justify-between">
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-ink/40">{t("home.example")}</p>
-                  <span className="h-2 w-2 rounded-full bg-lime" />
+                  <span className="h-2 w-2 bg-lime" />
                 </div>
                 <p className="mt-1 font-semibold">{t("home.exampleTitle")}</p>
-                <div className="mt-4 rounded-2xl bg-ink p-5 text-white">
+                <div className="mt-4 bg-ink p-5 text-white">
                   <p className="text-xs text-white/60">🔒 {t("home.exampleLocked")}</p>
                   <p className="mt-1 text-4xl font-semibold tracking-tight">
                     400<span className="text-white/40">.00</span> <span className="text-sm font-medium text-lime">USDC</span>
                   </p>
-                  <div className="mt-4 flex h-1.5 overflow-hidden rounded-full bg-white/15">
+                  <div className="mt-4 flex h-1.5 overflow-hidden bg-white/15">
                     <div className="w-1/3 bg-white/50" />
                     <div className="w-1/3 bg-lime" />
                   </div>
@@ -86,7 +87,7 @@ export default function Home() {
                   ).map(([title, status, cls]) => (
                     <li key={title} className="flex items-center justify-between py-2.5">
                       <span>{t(title)}</span>
-                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${cls}`}>{t(status)}</span>
+                      <span className={` px-2.5 py-0.5 text-xs font-semibold ${cls}`}>{t(status)}</span>
                     </li>
                   ))}
                 </ul>
@@ -96,9 +97,11 @@ export default function Home() {
         </div>
       </section>
 
+      <ProtocolStats />
+
       {/* Big numbers */}
       <section className="mx-auto max-w-6xl px-5">
-        <div className="grid gap-px overflow-hidden rounded-3xl border border-line bg-line sm:grid-cols-3">
+        <div className="grid gap-px overflow-hidden border border-ink bg-ink sm:grid-cols-3">
           {STATS.map(([v, l]) => (
             <div key={v} className="bg-paper p-8">
               <p className="text-6xl font-semibold tracking-[-0.04em] sm:text-7xl">{t(v)}</p>
@@ -111,7 +114,7 @@ export default function Home() {
       {/* How it works: editorial list with thin rules */}
       <section className="mx-auto grid max-w-6xl gap-10 px-5 lg:grid-cols-[1fr_1.6fr]">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink/50">{t("home.howKicker")}</p>
+          <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-ink/50">{t("home.howKicker")}</p>
           <h2 className="mt-3 text-5xl font-semibold leading-none tracking-[-0.03em] sm:text-6xl">
             {t("home.how")}
             <span className="font-serif font-normal italic text-brand-600">.</span>
@@ -130,11 +133,11 @@ export default function Home() {
 
       {/* Why trust it: colored blocks */}
       <section className="mx-auto max-w-6xl px-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink/50">{t("home.whyKicker")}</p>
+        <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-ink/50">{t("home.whyKicker")}</p>
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           {FEATURES.map((f) => (
-            <div key={f.title} className={`flex min-h-64 flex-col justify-between rounded-3xl p-7 ${f.cls}`}>
-              <span className={`h-3 w-3 rounded-full ${f.mark}`} aria-hidden />
+            <div key={f.title} className={`flex min-h-64 flex-col justify-between p-7 ${f.cls}`}>
+              <span className={`h-3 w-3 ${f.mark}`} aria-hidden />
               <div>
                 <h3 className="text-2xl font-semibold tracking-tight">{t(f.title)}</h3>
                 <p className="mt-3 text-sm leading-relaxed opacity-80">{t(f.body)}</p>
@@ -146,7 +149,7 @@ export default function Home() {
 
       {/* Two ways to try it */}
       <section className="mx-auto max-w-6xl px-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink/50">{t("home.tryKicker")}</p>
+        <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-ink/50">{t("home.tryKicker")}</p>
         <h2 className="mt-3 text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">{t("home.modesTitle")}</h2>
         <div className="mt-8 grid gap-4 md:grid-cols-2">
           {(
@@ -159,12 +162,12 @@ export default function Home() {
             return (
               <div
                 key={m}
-                className={`flex flex-col rounded-3xl border p-7 ${active ? "border-ink bg-white" : "border-line bg-paper"}`}
+                className={`flex flex-col border p-7 ${active ? "border-ink bg-white" : "border-line bg-paper"}`}
               >
                 <div className="flex items-center justify-between">
                   <h3 className="text-xl font-semibold">{t(title)}</h3>
                   {active && (
-                    <span className="rounded-full bg-ink px-3 py-1 text-xs font-semibold text-lime">✓ {t("home.current")}</span>
+                    <span className=" bg-ink px-3 py-1 text-xs font-semibold text-lime">✓ {t("home.current")}</span>
                   )}
                 </div>
                 <p className="mt-3 flex-1 text-sm leading-relaxed text-ink/60">{t(body)}</p>
@@ -182,7 +185,7 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={() => setMode(m)}
-                    className="mt-6 self-start rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-black"
+                    className="mt-6 self-start bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-black"
                   >
                     {t("home.useThis")} ↗
                   </button>
@@ -195,7 +198,7 @@ export default function Home() {
 
       {/* Closing call to action */}
       <section className="px-3 sm:px-5">
-        <div className="mx-auto max-w-6xl rounded-[2rem] bg-brand-600 px-6 py-14 text-white sm:px-12">
+        <div className="mx-auto max-w-6xl bg-brand-600 px-6 py-14 text-white sm:px-12">
           <h2 className="max-w-3xl text-4xl font-semibold leading-[1.05] tracking-[-0.03em] sm:text-5xl">
             {t("home.ctaBandT")}
             <span className="font-serif font-normal italic text-bo-yellow">{t("home.ctaBandAccent")}</span>.

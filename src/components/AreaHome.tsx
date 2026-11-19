@@ -10,6 +10,7 @@ import { BPS_DENOMINATOR, formatAmount } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { actionsNeeded } from "@/lib/status";
 import { useNow } from "@/lib/useNow";
+import { useMode } from "@/lib/mode";
 import { useWallet } from "@/lib/useWallet";
 import type { Agreement } from "@/lib/types";
 
@@ -42,7 +43,7 @@ export default function AreaHome({ area }: { area: "freelancer" | "client" }) {
   if (!wallet) {
     return (
       <Header area={area}>
-        <div className="rounded-3xl border border-line bg-white p-10 text-center text-ink/60">{t("dash.connect")}</div>
+        <div className=" border border-line bg-white p-10 text-center text-ink/60">{t("dash.connect")}</div>
       </Header>
     );
   }
@@ -75,16 +76,16 @@ export default function AreaHome({ area }: { area: "freelancer" | "client" }) {
         <Stat label={t("dash.waiting")} value={t("dash.actions", { n: todo })} />
       </div>
 
-      {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error && <p className=" bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
       {!isFreelancer && proposals.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-ink/50">{t("cl.proposals")}</h2>
+          <h2 className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-ink/50">{t("cl.proposals")}</h2>
           {proposals.map((a) => (
             <Link
               key={a.id}
               href={`/app/acuerdo/${a.id}`}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-3xl bg-ink p-5 text-white transition hover:bg-black"
+              className="flex flex-wrap items-center justify-between gap-3 bg-ink p-5 text-white transition hover:bg-black"
             >
               <div>
                 <p className="font-semibold">{a.title}</p>
@@ -92,19 +93,19 @@ export default function AreaHome({ area }: { area: "freelancer" | "client" }) {
                   {a.milestones.length} {t("new.milestones").toLowerCase()} · {formatAmount(a.milestones.reduce((s, m) => s + m.amount, 0))} USDC
                 </p>
               </div>
-              <span className="rounded-full bg-lime px-4 py-2 text-sm font-semibold text-ink">{t("cl.review")} ↗</span>
+              <span className=" bg-lime px-4 py-2 text-sm font-semibold text-ink">{t("cl.review")} ↗</span>
             </Link>
           ))}
         </section>
       )}
 
       <section className="space-y-3">
-        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-ink/50">{isFreelancer ? t("fl.list") : t("cl.active")}</h2>
+        <h2 className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-ink/50">{isFreelancer ? t("fl.list") : t("cl.active")}</h2>
         {active.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-ink/20 bg-white p-10 text-center">
+          <div className=" border border-dashed border-ink/20 bg-white p-10 text-center">
             <p className="text-sm text-ink/60">{isFreelancer ? t("fl.empty") : proposals.length > 0 ? t("cl.emptyActive") : t("cl.empty")}</p>
             {isFreelancer && (
-              <Link href="/app/nuevo" className="mt-4 inline-block rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-black">
+              <Link href="/app/nuevo" className="mt-4 inline-block bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-black">
                 {t("dash.emptyCta")}
               </Link>
             )}
@@ -127,14 +128,17 @@ function Header({ area, children }: { area: "freelancer" | "client"; children: R
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink/50">{area === "freelancer" ? t("area.freelancer") : t("area.client")}</p>
+          <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-ink/50">{area === "freelancer" ? t("area.freelancer") : t("area.client")}</p>
           <h1 className="mt-2 text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">{area === "freelancer" ? t("fl.title") : t("cl.title")}</h1>
           <p className="mt-2 text-ink/60">{area === "freelancer" ? t("fl.lead") : t("cl.lead")}</p>
         </div>
         {area === "freelancer" && (
-          <Link href="/app/nuevo" className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-black">
+          <div className="flex flex-wrap gap-2">
+          <ProfileLink />
+          <Link href="/app/nuevo" className=" bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-black">
             {t("dash.new")}
           </Link>
+          </div>
         )}
       </div>
       {children}
@@ -144,9 +148,24 @@ function Header({ area, children }: { area: "freelancer" | "client"; children: R
 
 function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className={`rounded-3xl border p-6 ${accent ? "border-ink bg-ink text-white" : "border-line bg-white"}`}>
+    <div className={` border p-6 ${accent ? "border-ink bg-ink text-white" : "border-line bg-white"}`}>
       <p className={`text-xs font-medium uppercase tracking-wider ${accent ? "text-white/60" : "text-ink/50"}`}>{label}</p>
       <p className={`mt-3 text-3xl font-semibold tracking-tight ${accent ? "text-lime" : "text-ink"}`}>{value}</p>
     </div>
+  );
+}
+
+function ProfileLink() {
+  const { t } = useT();
+  const { wallet } = useWallet();
+  const mode = useMode();
+  if (!wallet) return null;
+  return (
+    <Link
+      href={`/perfil/${wallet.address}${mode === "demo" ? "?demo=1" : ""}`}
+      className="border border-ink px-5 py-2.5 text-sm font-semibold hover:bg-ink hover:text-white"
+    >
+      {t("prof.mine")} ↗
+    </Link>
   );
 }

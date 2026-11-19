@@ -10,9 +10,10 @@ import { useT } from "@/lib/i18n";
 import { useMode } from "@/lib/mode";
 import type { Agreement } from "@/lib/types";
 
-export default function MoneyLocked({ agreement }: { agreement: Agreement }) {
+export default function MoneyLocked({ agreement, source }: { agreement: Agreement; source?: "demo" | "testnet" }) {
   const { t } = useT();
-  const mode = useMode();
+  const visitorMode = useMode();
+  const mode = source ?? visitorMode;
   const locked = lockedAmountOf(agreement);
   let total = 0;
   let settled = 0;
@@ -25,7 +26,7 @@ export default function MoneyLocked({ agreement }: { agreement: Agreement }) {
   const pct = (n: number) => (total > 0 ? (n / total) * 100 : 0);
 
   return (
-    <section className="hero-grid relative overflow-hidden rounded-[2rem] bg-ink p-7 text-white sm:p-9">
+    <section className="hero-grid relative overflow-hidden bg-ink p-7 text-white sm:p-9">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-white/60">
@@ -40,7 +41,7 @@ export default function MoneyLocked({ agreement }: { agreement: Agreement }) {
       </div>
 
       <div
-        className="mt-6 flex h-2 overflow-hidden rounded-full bg-white/15"
+        className="mt-6 flex h-2 overflow-hidden bg-white/15"
         role="img"
         aria-label={`${t("money.settled", { amount: formatAmount(settled) })}, ${t("money.locked", { amount: formatAmount(locked) })}, ${t("money.unfunded", { amount: formatAmount(unfunded) })}`}
       >
@@ -77,7 +78,7 @@ export default function MoneyLocked({ agreement }: { agreement: Agreement }) {
 function Legend({ color, label }: { color: string; label: string }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className={`h-2 w-2 rounded-full ${color}`} />
+      <span className={`h-2 w-2 ${color}`} />
       {label}
     </span>
   );

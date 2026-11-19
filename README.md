@@ -49,8 +49,9 @@ Nobody can change the rules after creation, not even the platform. Once money is
 
 | Part | Path | For |
 |---|---|---|
-| Website | `/`, `/como-funciona` | What it is, steps per role, fees, FAQ |
+| Website | `/`, `/como-funciona` | What it is, live on-chain totals (locked, paid, agreements), steps per role, fees, FAQ |
 | Public proof | `/verificar/[id]` | Anyone: locked money, milestone status and on-chain activity, no wallet |
+| Freelancer profile | `/perfil/[address]` | Public track record computed from the contract: paid milestones, earned, disputes, level |
 | Freelancer area | `/app/freelancer`, `/app/nuevo` | Create agreements, share the link, deliver, claim |
 | Client area | `/app/cliente` | Proposals to accept, agreements in progress |
 | Arbiter area | `/app/arbitro` | Split disputed milestones |

@@ -18,18 +18,18 @@ export default function AgreementCard({ agreement, viewer, now }: { agreement: A
   return (
     <Link
       href={`/app/acuerdo/${agreement.id}`}
-      className="block rounded-3xl border border-line bg-white p-4 shadow-sm transition hover:border-ink hover:shadow-lg"
+      className="block border border-line bg-white p-4 shadow-sm transition hover:border-ink hover:shadow-lg"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="font-semibold text-slate-900">{agreement.title}</span>
         <div className="flex items-center gap-2">
           {todo > 0 && (
-            <span className="rounded-full bg-ink px-2.5 py-0.5 text-xs font-semibold text-lime">
+            <span className=" bg-ink px-2.5 py-0.5 text-xs font-semibold text-lime">
               {t("card.actions", { n: todo })}
             </span>
           )}
           <span
-            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+            className={` px-2 py-0.5 text-xs font-medium ${
               role === "freelancer" ? "bg-brand-50 text-brand-700" : role === "client" ? "bg-amber-50 text-amber-800" : "bg-slate-100 text-slate-600"
             }`}
           >

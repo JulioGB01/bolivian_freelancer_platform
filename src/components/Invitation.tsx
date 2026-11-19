@@ -47,10 +47,10 @@ export default function Invitation({ agreement, onChanged }: { agreement: Agreem
   const step2 = step1 && ready;
 
   return (
-    <section className="hero-grid overflow-hidden rounded-[2rem] bg-ink text-white">
+    <section className="hero-grid overflow-hidden bg-ink text-white">
       <div className="grid gap-8 p-7 sm:p-10 lg:grid-cols-[1.2fr_1fr]">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-lime">{t("inv.kicker")}</p>
+          <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-lime">{t("inv.kicker")}</p>
           <h2 className="mt-3 text-3xl font-semibold leading-tight tracking-[-0.03em] sm:text-4xl">{t("inv.title")}</h2>
           <p className="mt-2 text-sm text-white/60">
             {t("inv.from")} <span className="font-mono text-white/80">{shortAddress(agreement.freelancer)}</span>
@@ -75,12 +75,12 @@ export default function Invitation({ agreement, onChanged }: { agreement: Agreem
         <ol className="space-y-3 self-center">
           <Step n={1} done={step1} active={!step1} title={t("inv.step1")}>
             {!wallet && mode === "testnet" && (
-              <button type="button" onClick={() => void connectReal().catch(() => undefined)} className="mt-3 rounded-full bg-lime px-4 py-2 text-xs font-semibold text-ink">
+              <button type="button" onClick={() => void connectReal().catch(() => undefined)} className="mt-3 bg-lime px-4 py-2 text-xs font-semibold text-ink">
                 {t("wallet.connect")}
               </button>
             )}
             {mode === "demo" && !isClient && (
-              <button type="button" onClick={() => connectAs(DEMO_IDENTITIES[1])} className="mt-3 rounded-full bg-lime px-4 py-2 text-xs font-semibold text-ink">
+              <button type="button" onClick={() => connectAs(DEMO_IDENTITIES[1])} className="mt-3 bg-lime px-4 py-2 text-xs font-semibold text-ink">
                 {t("wallet.connectAs")} {t("demo.client")}
               </button>
             )}
@@ -91,7 +91,7 @@ export default function Invitation({ agreement, onChanged }: { agreement: Agreem
           <Step n={2} done={step2} active={step1 && !step2} title={t("inv.step2")}>
             <p className="mt-1 text-xs text-white/50">{t("inv.step2b")}</p>
             {step1 && !step2 && mode === "testnet" && (
-              <Link href="/app/billetera" className="mt-3 inline-block rounded-full bg-lime px-4 py-2 text-xs font-semibold text-ink">
+              <Link href="/app/billetera" className="mt-3 inline-block bg-lime px-4 py-2 text-xs font-semibold text-ink">
                 {t("inv.goWallet")} ↗
               </Link>
             )}
@@ -116,7 +116,7 @@ export default function Invitation({ agreement, onChanged }: { agreement: Agreem
                     },
                   })
                 }
-                className="mt-3 rounded-full bg-lime px-5 py-2.5 text-sm font-semibold text-ink"
+                className="mt-3 bg-lime px-5 py-2.5 text-sm font-semibold text-ink"
               >
                 {t("inv.lockNow", { amount: formatAmount(first.amount) })}
               </button>
@@ -131,10 +131,10 @@ export default function Invitation({ agreement, onChanged }: { agreement: Agreem
 
 function Step({ n, done, active, title, children }: { n: number; done: boolean; active: boolean; title: string; children?: React.ReactNode }) {
   return (
-    <li className={`rounded-2xl border p-4 ${active ? "border-lime/60 bg-white/5" : "border-white/10"}`}>
+    <li className={` border p-4 ${active ? "border-lime/60 bg-white/5" : "border-white/10"}`}>
       <div className="flex items-center gap-3">
         <span
-          className={`grid h-7 w-7 place-items-center rounded-full text-xs font-bold ${done ? "bg-lime text-ink" : active ? "bg-white text-ink" : "bg-white/10 text-white/50"}`}
+          className={`grid h-7 w-7 place-items-center text-xs font-bold ${done ? "bg-lime text-ink" : active ? "bg-white text-ink" : "bg-white/10 text-white/50"}`}
         >
           {done ? "✓" : n}
         </span>

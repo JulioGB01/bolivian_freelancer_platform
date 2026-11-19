@@ -20,7 +20,7 @@ export default function HowItWorks() {
   return (
     <div className="mx-auto max-w-6xl space-y-20 px-5 py-14 sm:py-20">
       <header className="max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink/50">{t("how.kicker")}</p>
+        <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-ink/50">{t("how.kicker")}</p>
         <h1 className="mt-3 text-5xl font-semibold tracking-[-0.035em] sm:text-7xl">
           {t("how.title")}
           <span className="font-serif font-normal italic text-brand-600">.</span>
@@ -30,7 +30,7 @@ export default function HowItWorks() {
 
       <section className="grid gap-4 md:grid-cols-2">
         {ROLES.map((r) => (
-          <div key={r.title} className={`rounded-[2rem] p-8 ${r.cls}`}>
+          <div key={r.title} className={` p-8 ${r.cls}`}>
             <h2 className="text-2xl font-semibold tracking-tight">{t(r.title)}</h2>
             <ol className="mt-6 space-y-4">
               {r.steps.map((s, i) => (
@@ -45,11 +45,11 @@ export default function HowItWorks() {
       </section>
 
       <section className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-[2rem] bg-bo-yellow p-8 text-ink">
+        <div className=" bg-bo-yellow p-8 text-ink">
           <h2 className="text-2xl font-semibold tracking-tight">{t("how.arbT")}</h2>
           <p className="mt-3 leading-relaxed">{t("how.arbB")}</p>
         </div>
-        <div className="rounded-[2rem] bg-brand-600 p-8 text-white">
+        <div className=" bg-brand-600 p-8 text-white">
           <p className="text-6xl font-semibold tracking-[-0.04em]">5%</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight">{t("how.feeT")}</h2>
           <p className="mt-3 leading-relaxed text-white/80">{t("how.feeB")}</p>
@@ -63,7 +63,7 @@ export default function HowItWorks() {
             <details key={q} className="group border-b border-line py-5">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-semibold">
                 {t(q)}
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white transition group-open:rotate-45" aria-hidden>
+                <span className="grid h-8 w-8 shrink-0 place-items-center bg-white transition group-open:rotate-45" aria-hidden>
                   +
                 </span>
               </summary>

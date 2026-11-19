@@ -39,7 +39,7 @@ export default function NewAgreement() {
 
   if (!wallet) {
     return (
-      <div className="rounded-3xl border border-line bg-white p-8 text-center text-slate-600">{t("new.connect")}</div>
+      <div className=" border border-line bg-white p-8 text-center text-slate-600">{t("new.connect")}</div>
     );
   }
 
@@ -93,7 +93,7 @@ export default function NewAgreement() {
         <h1 className="text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">{t("new.title")}</h1>
         <p className="mt-3 max-w-2xl text-ink/60">{t("new.lead")}</p>
       </div>
-      <div className="rounded-3xl border border-line bg-white p-6 shadow-sm sm:p-8">
+      <div className=" border border-line bg-white p-6 shadow-sm sm:p-8">
         <div className="grid gap-6">
           <Field label={t("new.job")}>
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("new.jobPh")} maxLength={120} className={inputCls} />
@@ -151,7 +151,7 @@ export default function NewAgreement() {
                         type="button"
                         onClick={() => setMilestones((prev) => prev.filter((_, idx) => idx !== i))}
                         aria-label={`× ${i + 1}`}
-                        className="rounded-lg border border-slate-300 px-3 text-slate-500 hover:bg-slate-50"
+                        className=" border border-slate-300 px-3 text-slate-500 hover:bg-slate-50"
                       >
                         ×
                       </button>
@@ -171,7 +171,7 @@ export default function NewAgreement() {
             )}
           </fieldset>
 
-          <div className="rounded-2xl bg-paper p-5 text-sm">
+          <div className=" bg-paper p-5 text-sm">
             <Row label={t("new.total")} value={`${formatAmount(total)} USDC`} />
             <Row
               label={t("new.fee", { pct: feeBps === null ? "…" : (feeBps / 100).toFixed(2) })}
@@ -182,7 +182,7 @@ export default function NewAgreement() {
           </div>
 
           {touched && problems.length > 0 && (
-            <ul className="list-disc space-y-1 rounded-lg bg-red-50 py-2 pl-8 pr-3 text-sm text-red-700" role="alert">
+            <ul className="list-disc space-y-1 bg-red-50 py-2 pl-8 pr-3 text-sm text-red-700" role="alert">
               {problems.map((p) => (
                 <li key={p}>{t(p)}</li>
               ))}
@@ -199,7 +199,7 @@ export default function NewAgreement() {
               type="button"
               onClick={submit}
               disabled={busy}
-              className="w-full rounded-full bg-ink px-7 py-3 text-sm font-semibold text-white hover:bg-black disabled:opacity-40 sm:w-auto"
+              className="w-full bg-ink px-7 py-3 text-sm font-semibold text-white hover:bg-black disabled:opacity-40 sm:w-auto"
             >
               {busy ? t("new.creating") : t("new.create")}
             </button>
@@ -211,7 +211,7 @@ export default function NewAgreement() {
 }
 
 const inputCls =
-  "w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm focus:border-ink focus:outline-none focus:ring-4 focus:ring-ink/5";
+  "w-full border border-line bg-white px-3.5 py-2.5 text-sm focus:border-ink focus:outline-none focus:ring-4 focus:ring-ink/5";
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (

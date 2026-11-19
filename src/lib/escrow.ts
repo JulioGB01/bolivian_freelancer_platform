@@ -303,6 +303,14 @@ export function getEscrow(): EscrowApi {
   return instance;
 }
 
+/**
+ * Escrow client for a given mode, ignoring the visitor's own mode. Public pages (verify, profile)
+ * read testnet unless the shared link says it is a demo link (?demo=1).
+ */
+export function escrowFor(mode: "demo" | "testnet"): EscrowApi {
+  return mode === getMode() ? getEscrow() : mode === "testnet" ? new RealEscrow() : new MockEscrow();
+}
+
 /** Re-read the demo state after an external change (used by the wallet switcher). */
 export function resetEscrow(): void {
   instance = null;

@@ -65,5 +65,5 @@ export default function ArbiterPage() {
 }
 
 function Box({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-3xl border border-line bg-white p-8 text-center text-slate-600">{children}</div>;
+  return <div className=" border border-line bg-white p-8 text-center text-slate-600">{children}</div>;
 }

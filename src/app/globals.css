@@ -4,7 +4,9 @@
    - Paper and ink: warm off-white background, near-black text and primary buttons.
    - Brand green = the green of the Bolivian flag; a brighter "lime" green for highlights on dark.
    - Red and yellow from the flag only as small accents (stripe, logo, step markers).
-   - Type: Inter Tight for UI and big display headlines, Instrument Serif italic for accent words. */
+   - Type: Inter Tight for UI and big display headlines, Instrument Serif italic for accent words,
+     JetBrains Mono for labels, figures and addresses.
+   - Shapes: square corners only, hairline borders, grid layouts. */
 @theme {
   --color-paper: #f4f3ee;
   --color-ink: #111111;
@@ -23,6 +25,16 @@
   --color-brand-900: #053f1f;
   --color-lime: #3ee07a;
 
+  /* Square everything: no rounded corners anywhere (design decision). */
+  --radius-xs: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
+  --radius-4xl: 0;
+
   --color-bo-red: #d52b1e;
   --color-bo-yellow: #f9e300;
   --color-bo-green: #007934;
@@ -31,6 +43,7 @@
 @theme inline {
   --font-sans: var(--font-inter-tight), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   --font-serif: var(--font-instrument-serif), ui-serif, Georgia, serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 body {
