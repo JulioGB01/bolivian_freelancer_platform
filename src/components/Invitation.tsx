@@ -3,7 +3,7 @@
 // What a client sees when they open a proposal link: the offer, then three guided steps.
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ESCROW_CHANGED, getEscrow, notifyEscrowChanged } from "@/lib/escrow";
+import { ESCROW_CHANGED, getEscrow, notifyEscrowChanged, topUpDemoClient } from "@/lib/escrow";
 import { formatAmount, shortAddress } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { useMode } from "@/lib/mode";
@@ -94,6 +94,18 @@ export default function Invitation({ agreement, onChanged }: { agreement: Agreem
               <Link href="/app/billetera" className="mt-3 inline-block bg-lime px-4 py-2 text-xs font-semibold text-ink">
                 {t("inv.goWallet")} ↗
               </Link>
+            )}
+            {step1 && !step2 && mode === "demo" && (
+              <div className="mt-3 space-y-2">
+                <p className="text-xs text-bo-yellow">{t("inv.demoLowBalance")}</p>
+                <button
+                  type="button"
+                  onClick={() => topUpDemoClient()}
+                  className="bg-lime px-4 py-2 text-xs font-semibold text-ink hover:opacity-90"
+                >
+                  {t("inv.topUpDemo")}
+                </button>
+              </div>
             )}
           </Step>
           <Step n={3} done={false} active={step2} title={t("inv.step3")}>

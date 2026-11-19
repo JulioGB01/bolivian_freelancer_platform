@@ -11,7 +11,8 @@ import { useT } from "@/lib/i18n";
 
 export default function VerifyView({ id, source }: { id: number; source: "demo" | "testnet" }) {
   const { t } = useT();
-  const { agreement, missing, loadError } = useAgreement(id, source);
+  const { agreement, config, missing, loadError } = useAgreement(id, source);
+  const pinnedArbiter = agreement?.arbiter ?? config?.arbiter;
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-5 py-10 sm:py-14">
@@ -29,8 +30,14 @@ export default function VerifyView({ id, source }: { id: number; source: "demo" 
               <Link className="font-mono underline underline-offset-2" href={`/perfil/${agreement.freelancer}${source === "demo" ? "?demo=1" : ""}`}>
                 {shortAddress(agreement.freelancer)}
               </Link> · {t("ag.client")}{" "}
-              <span className="font-mono">{shortAddress(agreement.client)}</span> · {t("ag.fee")} {(agreement.feeBps / 100).toFixed(2)}% ·{" "}
-              {t("ag.window")} {duration(agreement.reviewWindowSecs, t)}
+              <span className="font-mono">{shortAddress(agreement.client)}</span> · {t("ag.fee")} {(agreement.feeBps / 100).toFixed(2)}%
+              {pinnedArbiter && (
+                <>
+                  {" · "}
+                  {t("ag.arbiter")} <span className="font-mono">{shortAddress(pinnedArbiter)}</span>
+                </>
+              )}{" "}
+              · {t("ag.window")} {duration(agreement.reviewWindowSecs, t)}
             </p>
           </>
         )}

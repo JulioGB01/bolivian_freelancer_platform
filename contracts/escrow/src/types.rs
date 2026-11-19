@@ -34,7 +34,8 @@ pub enum MilestoneStatus {
     Funded,
     /// Freelancer delivered; review window is running.
     Submitted,
-    /// Client opened a dispute during the review window.
+    /// Client opened a dispute (either while Funded if freelancer ghosts, or
+    /// during the review window after Submitted).
     Disputed,
     /// Money paid to the freelancer (minus fee). Final.
     Released,
@@ -56,6 +57,9 @@ pub struct Milestone {
     pub submitted_at: u64,
     /// Reason given by the client in `dispute_milestone`.
     pub dispute_reason: String,
+    /// Freelancer share in basis points (0..=10_000) recorded when an arbiter
+    /// resolves a dispute; `None` until `MilestoneStatus::Resolved`.
+    pub resolved_freelancer_bps: Option<u32>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -71,6 +75,12 @@ pub struct Agreement {
     /// Fee snapshot taken from Config at creation. Later fee changes never
     /// affect an existing agreement.
     pub fee_bps: u32,
+    /// Fee recipient snapshot taken from Config at creation. Later config
+    /// changes never redirect fees on an existing agreement.
+    pub fee_recipient: Address,
+    /// Arbiter snapshot taken from Config at creation. Later config changes
+    /// never swap the arbiter on an existing agreement.
+    pub arbiter: Address,
     pub milestones: Vec<Milestone>,
     pub created_at: u64,
 }

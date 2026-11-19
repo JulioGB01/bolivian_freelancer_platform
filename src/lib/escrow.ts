@@ -58,8 +58,11 @@ export class EscrowError extends Error {
 
 const STATE_KEY = "bfe.mock.state";
 const MAX_MILESTONES = 10;
-const DEMO_FEE_BPS = 500; // 5%, same as the deployed contract.
+export const DEMO_FEE_BPS = 150; // 1.5%, matching the hardened contract.
+export const MIN_REVIEW_WINDOW_SECS = 3600; // 1 hour
+export const MAX_REVIEW_WINDOW_SECS = 30 * 86400; // 30 days
 const DEMO_INITIAL_BALANCE = 1_000_000_000; // 100 USDC, 7 decimals.
+export const DEMO_TOP_UP_AMOUNT = 10_000_000_000; // 1,000 USDC, 7 decimals.
 
 interface MockState {
   config: Config;
@@ -100,7 +103,7 @@ function loadState(): MockState {
   if (!raw) return defaultState();
   try {
     const parsed = JSON.parse(raw) as MockState;
-    // Reset demo data saved with an older fee so the demo matches the 5% fee.
+    // Reset demo data saved with an older fee so the demo matches the 1.5% fee.
     if (!parsed.config || !parsed.balances || !parsed.agreements || parsed.config.feeBps !== DEMO_FEE_BPS) {
       return defaultState();
     }
@@ -116,11 +119,17 @@ function saveState(s: MockState): void {
 }
 
 /** Deterministic "next state" executor shared by all state changes. */
-class MockEscrow implements EscrowApi {
+export class MockEscrow implements EscrowApi {
   private state: MockState;
 
-  constructor() {
-    this.state = loadState();
+  constructor(initialState?: MockState) {
+    this.state = initialState ?? loadState();
+  }
+
+  topUp(address: string, amount: number): void {
+    if (!Number.isFinite(amount) || amount <= 0) throw new EscrowError("InvalidAmount");
+    this.state.balances[address] = (this.state.balances[address] ?? 0) + Math.floor(amount);
+    this.persist();
   }
 
   private log(id: number, kind: ActivityKind, index?: number): void {
@@ -187,6 +196,9 @@ class MockEscrow implements EscrowApi {
 
   async createAgreement(input: NewAgreementInput): Promise<number> {
     if (input.freelancer === input.client) throw new EscrowError("SameParty");
+    if (input.reviewWindowSecs < MIN_REVIEW_WINDOW_SECS || input.reviewWindowSecs > MAX_REVIEW_WINDOW_SECS) {
+      throw new EscrowError("InvalidReviewWindow");
+    }
     const count = input.milestones.length;
     if (count === 0 || count > MAX_MILESTONES) throw new EscrowError("InvalidMilestoneCount");
     for (const m of input.milestones) {
@@ -208,6 +220,8 @@ class MockEscrow implements EscrowApi {
       title: input.title,
       reviewWindowSecs: input.reviewWindowSecs,
       feeBps: this.state.config.feeBps, // snapshot
+      arbiter: this.state.config.arbiter, // snapshot
+      feeRecipient: this.state.config.feeRecipient, // snapshot
       milestones,
       createdAt: nowSecs(),
     };
@@ -240,7 +254,7 @@ class MockEscrow implements EscrowApi {
     m.status = "Released";
     const fee = Math.floor((amount * a.feeBps) / BPS_DENOMINATOR);
     this.transfer("CONTRACT", a.freelancer, amount - fee);
-    this.transfer("CONTRACT", this.state.config.feeRecipient, fee);
+    this.transfer("CONTRACT", a.feeRecipient ?? this.state.config.feeRecipient, fee);
     this.log(id, "approved", index); this.persist();
   }
 
@@ -252,14 +266,16 @@ class MockEscrow implements EscrowApi {
     m.status = "Released";
     const fee = Math.floor((amount * a.feeBps) / BPS_DENOMINATOR);
     this.transfer("CONTRACT", a.freelancer, amount - fee);
-    this.transfer("CONTRACT", this.state.config.feeRecipient, fee);
+    this.transfer("CONTRACT", a.feeRecipient ?? this.state.config.feeRecipient, fee);
     this.log(id, "claimed", index); this.persist();
   }
 
   async disputeMilestone(id: number, index: number, reason: string): Promise<void> {
     const a = this.agreement(id);
-    const m = this.requireStatus(a, index, ["Submitted"]);
-    if (nowSecs() >= m.submittedAt + a.reviewWindowSecs) throw new EscrowError("ReviewWindowClosed");
+    const m = this.requireStatus(a, index, ["Funded", "Submitted"]);
+    if (m.status === "Submitted" && nowSecs() >= m.submittedAt + a.reviewWindowSecs) {
+      throw new EscrowError("ReviewWindowClosed");
+    }
     m.disputeReason = reason;
     m.status = "Disputed";
     this.log(id, "disputed", index); this.persist();
@@ -268,14 +284,17 @@ class MockEscrow implements EscrowApi {
   async resolveDispute(id: number, index: number, freelancerBps: number): Promise<void> {
     const a = this.agreement(id);
     const m = this.requireStatus(a, index, ["Disputed"]);
-    if (freelancerBps > BPS_DENOMINATOR) throw new EscrowError("InvalidBps");
+    if (!Number.isInteger(freelancerBps) || freelancerBps < 0 || freelancerBps > BPS_DENOMINATOR) {
+      throw new EscrowError("InvalidBps");
+    }
     const amount = m.amount;
     m.status = "Resolved";
+    m.resolvedFreelancerBps = freelancerBps;
     const freelancerPart = Math.floor((amount * freelancerBps) / BPS_DENOMINATOR);
     const clientPart = amount - freelancerPart;
     const fee = Math.floor((freelancerPart * a.feeBps) / BPS_DENOMINATOR);
     this.transfer("CONTRACT", a.freelancer, freelancerPart - fee);
-    this.transfer("CONTRACT", this.state.config.feeRecipient, fee);
+    this.transfer("CONTRACT", a.feeRecipient ?? this.state.config.feeRecipient, fee);
     this.transfer("CONTRACT", a.client, clientPart);
     this.log(id, "resolved", index); this.persist();
   }
@@ -314,6 +333,19 @@ export function escrowFor(mode: "demo" | "testnet"): EscrowApi {
 /** Re-read the demo state after an external change (used by the wallet switcher). */
 export function resetEscrow(): void {
   instance = null;
+}
+
+/** Add simulated USDC to demo-client so large milestones can be tested in demo mode. */
+export function topUpDemoClient(amount: number = DEMO_TOP_UP_AMOUNT): void {
+  const escrow = getEscrow();
+  if (escrow instanceof MockEscrow) {
+    escrow.topUp("demo-client", amount);
+  } else {
+    const state = loadState();
+    state.balances["demo-client"] = (state.balances["demo-client"] ?? 0) + Math.floor(amount);
+    saveState(state);
+  }
+  notifyEscrowChanged();
 }
 
 /** Amount an agreement currently has locked in the contract. */

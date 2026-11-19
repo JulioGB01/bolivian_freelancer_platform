@@ -4,39 +4,54 @@
 
 Setup pattern: `soroban-examples/timelock/src/test.rs` (`Env::default()`, `env.mock_all_auths()`, `register_stellar_asset_contract_v2` for the token, `env.ledger().with_mut(|l| l.timestamp = ...)` to move time).
 
-| Test | Checks |
-|---|---|
-| initialize_sets_config | get_config returns the values passed |
-| initialize_twice_fails | Error AlreadyInitialized |
-| initialize_rejects_fee_above_10000_bps | Error InvalidBps |
-| create_agreement_stores_pending_milestones_and_indexes | All Pending; id in both indexes; ids increase 0, 1, 2 |
-| create_agreement_rejects_empty_or_too_many_milestones | Error InvalidMilestoneCount for 0 and MAX_MILESTONES + 1 |
-| create_agreement_rejects_zero_amount_and_same_party | Errors InvalidAmount, SameParty |
-| fund_moves_tokens_into_contract | Client balance down, contract balance up by amount; status Funded |
-| fund_twice_fails | Error InvalidStatus |
-| submit_requires_funded | Submitting a Pending milestone fails InvalidStatus |
-| approve_pays_freelancer_minus_fee_and_fee_recipient | Exact balances per spec section 4 |
-| fee_snapshot_ignores_later_config_change | update_config after creation does not change payout |
-| claim_before_window_fails | Error ReviewWindowOpen |
-| claim_after_window_pays_freelancer | Same payout as approve |
-| dispute_after_window_fails | Error ReviewWindowClosed |
-| resolve_splits_amount_and_takes_fee_from_freelancer_side | Exact balances for e.g. 60/40 split |
-| only_arbiter_can_resolve | Without arbiter auth the call fails (use real auth, not mock_all_auths) |
-| refund_returns_full_amount_to_client | Client gets full amount; no fee |
-| released_milestone_cannot_be_refunded | Error InvalidStatus |
-| contract_balance_equals_sum_of_locked_milestones | Invariant holds after a mixed sequence of actions on 2 agreements |
-| full_happy_path_three_milestones | 3 milestones funded, submitted, approved/claimed; final balances exact |
+### Core lifecycle & security coverage
 
-Also assert in each test that the expected event was emitted and that the right address's auth was required (inspect `env.auths()` as in the timelock test).
+| Area | What is verified |
+|---|---|
+| Initialization & config | `initialize` sets `Config`; double init fails (`AlreadyInitialized`); `fee_bps > 10_000` fails (`InvalidBps`); default **150 bps (1.5%)** payout math |
+| Agreement creation & bounds | Stores `Pending` milestones and indexes; increments `NextId` (readable via `get_next_id()`); rejects empty / `> MAX_MILESTONES`, zero amount, `freelancer == client`, out-of-range review window (`< 3_600`s or `> 2_592_000`s), and overly long strings |
+| Immutable per-agreement snapshots | `update_config` after agreement creation does **not** alter an active agreement's `fee_bps`, `arbiter`, or `fee_recipient` |
+| Funding & submission | `fund_milestone` locks tokens (`Pending -> Funded`); double funding fails; `submit_milestone` requires `Funded` |
+| Approval & auto-claim | `approve_milestone` pays freelancer minus 1.5% fee; `claim_milestone` fails before window (`ReviewWindowOpen`) and pays after window ends |
+| Disputes & anti-ghosting | Client can dispute `Submitted` within window (fails after with `ReviewWindowClosed`) **and** can dispute `Funded` directly if freelancer ghosts; only the agreement's frozen `arbiter` can resolve; `resolve_dispute` splits accurately, takes fee only on freelancer's share, and records `resolved_freelancer_bps` |
+| Refunds | Only freelancer can refund `Funded` or `Submitted` milestones (100% returned to client, 0% fee); `Released` cannot be refunded |
+| Balance invariant | Contract token balance always equals the sum of all `Funded`, `Submitted`, and `Disputed` milestones across multiple agreements |
+
+Run locally:
+
+```bash
+cd contracts
+cargo fmt --check
+cargo clippy --all-targets
+cargo test
+```
+
+## Frontend unit tests (`src/lib/__tests__/`)
+
+Vitest unit test suite covering:
+- `src/lib/format.ts`: `parseAmount` hardening (rejecting scientific notation like `"1e5"`, `"Infinity"`, negative values, malformed decimals) and localized `formatCountdown` (`"vencido"` in ES, `"expired"` in EN).
+- `src/lib/metrics.ts`: crediting `Resolved` milestones via `resolvedFreelancerBps`, and Sybil-resistant trust level thresholds (requiring both `>= 5` completed milestones and `>= $100` USDC volume).
+- `src/lib/escrow.ts`: `MockEscrow` lifecycle at 1.5% (`150 bps`), anti-ghosting `Funded -> Disputed` flow, `freelancerBps` bounds validation, and `topUpDemoClient`.
+
+Run locally:
+
+```bash
+npm test
+npm run lint
+npx tsc --noEmit
+npm run build
+```
 
 ## Testnet smoke test
 
-`scripts/smoke-testnet.sh`: create, fund, submit, approve one milestone using the test identities; prints balances before and after. Last run: 100 USDC locked, 95 paid to the freelancer, 5 fee.
+`scripts/smoke-testnet.sh`: creates, funds, submits, and approves a milestone on Stellar Testnet using test identities and prints balances before and after.
 
 ## Manual UI test
 
-[`demo-script.md`](demo-script.md) run end to end by someone outside the team.
+Run [`demo-script.md`](demo-script.md) end to end (including Pollar BOB preview, Vaquita CTA, downloadable SIAT receipt, and invalid-ID handling on `/app/acuerdo/abc` and `/verificar/abc`).
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs `cargo fmt --check`, `cargo clippy -D warnings` and `cargo test` for the contract, and `npm run lint` and `npm run build` for the web app, on every push.
+`.github/workflows/ci.yml` runs two jobs on every push and pull request:
+- **`contracts`**: `cargo fmt --check`, `cargo clippy --all-targets`, and `cargo test` in `contracts/`.
+- **`web`**: `npm ci`, `npm run lint`, `npx tsc --noEmit`, `npm test`, and `npm run build`.

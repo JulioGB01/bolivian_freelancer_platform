@@ -5,10 +5,11 @@ import Link from "next/link";
 import Invitation from "./Invitation";
 import MilestoneRow from "./MilestoneRow";
 import MoneyLocked from "./MoneyLocked";
+import PayoutEcosystemPanel from "./PayoutEcosystemPanel";
 import Timeline from "./Timeline";
 import { EXPLORER_URL, ESCROW_CONTRACT_ID, USDC_CONTRACT_ID } from "@/lib/config";
 import { ESCROW_CHANGED, escrowFor, getEscrow } from "@/lib/escrow";
-import { formatDate } from "@/lib/format";
+import { formatDate, shortAddress } from "@/lib/format";
 import { useT, type MsgKey, type TFn } from "@/lib/i18n";
 import { useMode } from "@/lib/mode";
 import { roleIn } from "@/lib/status";
@@ -95,7 +96,8 @@ export default function AgreementDetail({ id }: { id: number }) {
 
   if (!agreement || !config) return <p className="text-ink/50">{t("ag.loading")}</p>;
 
-  const role = roleIn(agreement, wallet?.address, config.arbiter);
+  const pinnedArbiter = agreement.arbiter ?? config.arbiter;
+  const role = roleIn(agreement, wallet?.address, pinnedArbiter);
   const nothingFunded = agreement.milestones.every((m) => m.status === "Pending");
   const showInvitation = nothingFunded && role !== "freelancer" && role !== "arbiter";
   const showShare = role === "freelancer" && nothingFunded;
@@ -126,7 +128,8 @@ export default function AgreementDetail({ id }: { id: number }) {
           </div>
         </div>
         <p className="mt-2 text-sm text-ink/50">
-          #{agreement.id} · {t("ag.fee")} {(agreement.feeBps / 100).toFixed(2)}% {t("ag.fixed")} · {t("ag.window")}{" "}
+          #{agreement.id} · {t("ag.fee")} {(agreement.feeBps / 100).toFixed(2)}% {t("ag.fixed")} · {t("ag.arbiter")}{" "}
+          <span className="font-mono text-ink/70">{shortAddress(pinnedArbiter)}</span> · {t("ag.window")}{" "}
           {duration(agreement.reviewWindowSecs, t)}
           {wallet && (
             <>
@@ -168,6 +171,7 @@ export default function AgreementDetail({ id }: { id: number }) {
               <MilestoneRow key={i} agreement={agreement} milestone={m} index={i} role={role} onChanged={refresh} />
             ))}
           </div>
+          <PayoutEcosystemPanel agreement={agreement} arbiter={pinnedArbiter} />
         </div>
       )}
 
@@ -178,7 +182,7 @@ export default function AgreementDetail({ id }: { id: number }) {
           <Row label={t("ag.agreement")} value={`#${agreement.id}`} />
           <Row label={t("ag.freelancer")} value={agreement.freelancer} mono href={`/perfil/${agreement.freelancer}${mode === "demo" ? "?demo=1" : ""}`} />
           <Row label={t("ag.client")} value={agreement.client} mono />
-          <Row label={t("area.arbiter")} value={config.arbiter} mono />
+          <Row label={t("ag.arbiter")} value={pinnedArbiter} mono />
           <Row label={t("ag.fee")} value={`${(agreement.feeBps / 100).toFixed(2)}% ${t("ag.fixed")}`} />
           <Row label={t("ag.window")} value={duration(agreement.reviewWindowSecs, t)} />
           <Row label={t("det.created")} value={formatDate(agreement.createdAt, locale)} />
@@ -197,14 +201,21 @@ export default function AgreementDetail({ id }: { id: number }) {
 }
 
 function Row({ label, value, mono, href }: { label: string; value: string; mono?: boolean; href?: string }) {
+  const isExternal = href?.startsWith("http");
   return (
     <div className="grid gap-1 px-5 py-3.5 sm:grid-cols-[12rem_1fr]">
       <dt className="text-ink/50">{label}</dt>
       <dd className={`break-all ${mono ? "font-mono text-xs leading-5" : ""}`}>
         {href ? (
-          <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel="noreferrer noopener" className="text-brand-700 underline underline-offset-2">
-            {value} {href.startsWith("http") ? "↗" : ""}
-          </a>
+          isExternal ? (
+            <a href={href} target="_blank" rel="noreferrer noopener" className="text-brand-700 underline underline-offset-2">
+              {value} ↗
+            </a>
+          ) : (
+            <Link href={href} className="text-brand-700 underline underline-offset-2">
+              {value}
+            </Link>
+          )
         ) : (
           value
         )}

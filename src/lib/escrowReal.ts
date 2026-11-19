@@ -10,6 +10,11 @@ import { getConnectedWallet, signWithWallet } from "./wallet";
 import type { EscrowApi, NewAgreementInput } from "./escrow";
 
 const MAX_SCAN = 500;
+const MAX_CONSECUTIVE_GAPS = 10;
+
+export function isValidAgreementId(id: number): boolean {
+  return Number.isInteger(id) && id >= 0;
+}
 
 function toStatus(s: unknown): MilestoneStatus {
   if (typeof s === "string") return s as MilestoneStatus;
@@ -18,6 +23,13 @@ function toStatus(s: unknown): MilestoneStatus {
 }
 
 function toMilestone(m: RawMilestone): Milestone {
+  const raw = m as unknown as Record<string, unknown>;
+  const resolvedBps =
+    typeof raw.resolved_freelancer_bps === "number"
+      ? raw.resolved_freelancer_bps
+      : typeof raw.resolved_freelancer_bps === "bigint"
+        ? Number(raw.resolved_freelancer_bps)
+        : undefined;
   return {
     title: m.title,
     amount: Number(m.amount),
@@ -25,10 +37,12 @@ function toMilestone(m: RawMilestone): Milestone {
     evidence: m.evidence,
     submittedAt: Number(m.submitted_at),
     disputeReason: m.dispute_reason,
+    ...(resolvedBps !== undefined ? { resolvedFreelancerBps: resolvedBps } : {}),
   };
 }
 
 function toAgreement(a: RawAgreement): Agreement {
+  const raw = a as unknown as Record<string, unknown>;
   return {
     id: Number(a.id),
     freelancer: a.freelancer,
@@ -36,6 +50,8 @@ function toAgreement(a: RawAgreement): Agreement {
     title: a.title,
     reviewWindowSecs: Number(a.review_window_secs),
     feeBps: Number(a.fee_bps),
+    ...(typeof raw.arbiter === "string" ? { arbiter: raw.arbiter } : {}),
+    ...(typeof raw.fee_recipient === "string" ? { feeRecipient: raw.fee_recipient } : {}),
     milestones: a.milestones.map(toMilestone),
     createdAt: Number(a.created_at),
   };
@@ -81,6 +97,7 @@ export class RealEscrow implements EscrowApi {
   }
 
   async getAgreement(id: number): Promise<Agreement | null> {
+    if (!isValidAgreementId(id)) return null;
     const res = (await this.reader.get_agreement({ agreement_id: BigInt(id) })).result;
     if (res.isErr()) return null;
     return toAgreement(res.unwrap());
@@ -96,12 +113,33 @@ export class RealEscrow implements EscrowApi {
     return list.filter((a): a is Agreement => a !== null);
   }
 
-  /** The contract has no "list all"; ids are sequential from 0, so read until the first gap. */
+  /**
+   * Lists agreements sequentially, tolerating archived/missing ID gaps so one archived
+   * entry never aborts scanning all newer agreements.
+   */
   async listAll(): Promise<Agreement[]> {
     const out: Agreement[] = [];
-    for (let id = 0; id < MAX_SCAN; id++) {
+    const readerAny = this.reader as unknown as { get_next_id?: () => Promise<{ result: bigint }> };
+    let upperBound = MAX_SCAN;
+    if (typeof readerAny.get_next_id === "function") {
+      try {
+        const nextId = Number((await readerAny.get_next_id()).result);
+        if (Number.isInteger(nextId) && nextId >= 0) {
+          upperBound = Math.min(nextId, MAX_SCAN);
+        }
+      } catch {
+        // Fallback to gap-tolerant sequential scan.
+      }
+    }
+    let consecutiveGaps = 0;
+    for (let id = 0; id < upperBound; id++) {
       const a = await this.getAgreement(id);
-      if (!a) break;
+      if (!a) {
+        consecutiveGaps += 1;
+        if (consecutiveGaps >= MAX_CONSECUTIVE_GAPS) break;
+        continue;
+      }
+      consecutiveGaps = 0;
       out.push(a);
     }
     return out.reverse();
@@ -109,6 +147,7 @@ export class RealEscrow implements EscrowApi {
 
   /** Reads this agreement's events (contracts/escrow/src/events.rs) from Stellar RPC, which keeps about a week of history. */
   async activity(id: number): Promise<ActivityItem[]> {
+    if (!isValidAgreementId(id)) return [];
     const agreement = await this.getAgreement(id);
     if (!agreement) return [];
     const server = new rpc.Server(STELLAR_RPC_URL);
@@ -125,6 +164,7 @@ export class RealEscrow implements EscrowApi {
     const pages = Math.min(40, Math.ceil((latest - start) / 10_000) + 1);
     const events: rpc.Api.EventResponse[] = [];
     let cursor: string | undefined;
+    let retriedRange = false;
     for (let p = 0; p < pages; p++) {
       let res: rpc.Api.GetEventsResponse;
       try {
@@ -132,11 +172,16 @@ export class RealEscrow implements EscrowApi {
           ? await server.getEvents({ cursor, filters, limit: 200 })
           : await server.getEvents({ startLedger: start, filters, limit: 200 });
       } catch (e) {
-        // Start is older than what the RPC keeps: move it forward and retry once.
-        if (!cursor && /startLedger|range/i.test(String(e))) {
-          start = latest - 100_000;
+        // Start is older than what the RPC keeps: clamp forward at most once, never loop 40x.
+        const msg = String(e);
+        if (!cursor && !retriedRange && /startLedger|range/i.test(msg)) {
+          retriedRange = true;
+          const rangeMatch = msg.match(/(\d+)\s*-\s*(\d+)/);
+          const minLedger = rangeMatch ? Number(rangeMatch[1]) : Math.max(1, latest - 50_000);
+          start = Math.max(1, Math.min(latest, minLedger));
           continue;
         }
+        if (/startLedger|range/i.test(msg)) break;
         throw e;
       }
       events.push(...res.events);
@@ -170,32 +215,44 @@ export class RealEscrow implements EscrowApi {
     return Number(res.unwrap());
   }
 
+  private assertValidId(id: number): bigint {
+    if (!isValidAgreementId(id)) throw new Error("AgreementNotFound");
+    return BigInt(id);
+  }
+
   async fundMilestone(id: number, index: number): Promise<void> {
-    (await this.send((c) => c.fund_milestone({ agreement_id: BigInt(id), index }))).unwrap();
+    const agreement_id = this.assertValidId(id);
+    (await this.send((c) => c.fund_milestone({ agreement_id, index }))).unwrap();
   }
 
   async submitMilestone(id: number, index: number, evidence: string): Promise<void> {
-    (await this.send((c) => c.submit_milestone({ agreement_id: BigInt(id), index, evidence }))).unwrap();
+    const agreement_id = this.assertValidId(id);
+    (await this.send((c) => c.submit_milestone({ agreement_id, index, evidence }))).unwrap();
   }
 
   async approveMilestone(id: number, index: number): Promise<void> {
-    (await this.send((c) => c.approve_milestone({ agreement_id: BigInt(id), index }))).unwrap();
+    const agreement_id = this.assertValidId(id);
+    (await this.send((c) => c.approve_milestone({ agreement_id, index }))).unwrap();
   }
 
   async claimMilestone(id: number, index: number): Promise<void> {
-    (await this.send((c) => c.claim_milestone({ agreement_id: BigInt(id), index }))).unwrap();
+    const agreement_id = this.assertValidId(id);
+    (await this.send((c) => c.claim_milestone({ agreement_id, index }))).unwrap();
   }
 
   async disputeMilestone(id: number, index: number, reason: string): Promise<void> {
-    (await this.send((c) => c.dispute_milestone({ agreement_id: BigInt(id), index, reason }))).unwrap();
+    const agreement_id = this.assertValidId(id);
+    (await this.send((c) => c.dispute_milestone({ agreement_id, index, reason }))).unwrap();
   }
 
   async resolveDispute(id: number, index: number, freelancerBps: number): Promise<void> {
-    (await this.send((c) => c.resolve_dispute({ agreement_id: BigInt(id), index, freelancer_bps: freelancerBps }))).unwrap();
+    const agreement_id = this.assertValidId(id);
+    (await this.send((c) => c.resolve_dispute({ agreement_id, index, freelancer_bps: freelancerBps }))).unwrap();
   }
 
   async refundMilestone(id: number, index: number): Promise<void> {
-    (await this.send((c) => c.refund_milestone({ agreement_id: BigInt(id), index }))).unwrap();
+    const agreement_id = this.assertValidId(id);
+    (await this.send((c) => c.refund_milestone({ agreement_id, index }))).unwrap();
   }
 }
 

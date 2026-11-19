@@ -175,12 +175,13 @@ fn create_agreement_stores_pending_milestones_and_indexes() {
     assert_eq!(ag.freelancer, t.freelancer);
     assert_eq!(ag.client, t.client);
     assert_eq!(ag.fee_bps, FEE_BPS);
+    assert_eq!(ag.fee_recipient, t.fee_recipient);
+    assert_eq!(ag.arbiter, t.arbiter);
     assert_eq!(ag.milestones.len(), 2);
     for i in 0..2 {
-        assert_eq!(
-            ag.milestones.get(i).unwrap().status,
-            MilestoneStatus::Pending
-        );
+        let m = ag.milestones.get(i).unwrap();
+        assert_eq!(m.status, MilestoneStatus::Pending);
+        assert_eq!(m.resolved_freelancer_bps, None);
     }
 
     let f = t.escrow.agreements_of_freelancer(&t.freelancer);
@@ -432,10 +433,16 @@ fn resolve_splits_amount_and_takes_fee_from_freelancer_side() {
         t.env.events().all().filter_by_contract(&t.escrow_id),
         [Resolved {
             agreement_id: id,
-            index: 0
+            index: 0,
+            freelancer_bps: 6_000,
         }
         .to_xdr(&t.env, &t.escrow_id)],
     );
+
+    let ag = t.escrow.get_agreement(&id);
+    let m = ag.milestones.get(0).unwrap();
+    assert_eq!(m.status, MilestoneStatus::Resolved);
+    assert_eq!(m.resolved_freelancer_bps, Some(6_000));
 
     let freelancer_part = amount * 6_000 / BPS_DENOMINATOR;
     let client_part = amount - freelancer_part;
@@ -667,4 +674,334 @@ fn full_happy_path_three_milestones() {
         client_start - total + client_part
     );
     assert_eq!(t.token.balance(&t.escrow_id), 0);
+}
+
+// ---------------------------------------------------------------------------
+// Security & audit protections
+// ---------------------------------------------------------------------------
+
+#[test]
+fn config_snapshot_freezes_arbiter_and_fee_recipient_across_update_config() {
+    let t = TestContext::setup();
+    let amount = 1_000_000_000i128; // 100 USDC
+    let id_old = t.create_agreement(amount);
+
+    let new_fee_recipient = Address::generate(&t.env);
+    let new_arbiter = Address::generate(&t.env);
+    t.escrow
+        .update_config(&500, &new_fee_recipient, &new_arbiter);
+
+    // Existing agreement retains original arbiter, fee_recipient, and fee_bps.
+    let ag_old = t.escrow.get_agreement(&id_old);
+    assert_eq!(ag_old.fee_bps, FEE_BPS);
+    assert_eq!(ag_old.fee_recipient, t.fee_recipient);
+    assert_eq!(ag_old.arbiter, t.arbiter);
+
+    // New agreement created after update_config snapshots the updated config.
+    let id_new = t.create_agreement(amount);
+    let ag_new = t.escrow.get_agreement(&id_new);
+    assert_eq!(ag_new.fee_bps, 500);
+    assert_eq!(ag_new.fee_recipient, new_fee_recipient);
+    assert_eq!(ag_new.arbiter, new_arbiter);
+
+    // Resolving the old agreement pays fees to the original fee_recipient (1%).
+    t.escrow.fund_milestone(&id_old, &0);
+    t.escrow
+        .submit_milestone(&id_old, &0, &String::from_str(&t.env, "ev"));
+    t.escrow
+        .dispute_milestone(&id_old, &0, &String::from_str(&t.env, "issue"));
+    let old_fee_before = t.token.balance(&t.fee_recipient);
+    let new_fee_before = t.token.balance(&new_fee_recipient);
+    t.escrow.resolve_dispute(&id_old, &0, &5_000);
+
+    let expected_old_fee = (amount * 5_000 / BPS_DENOMINATOR) * (FEE_BPS as i128) / BPS_DENOMINATOR;
+    assert_eq!(
+        t.token.balance(&t.fee_recipient),
+        old_fee_before + expected_old_fee
+    );
+    assert_eq!(t.token.balance(&new_fee_recipient), new_fee_before);
+}
+
+#[test]
+#[should_panic]
+fn updated_arbiter_cannot_resolve_existing_agreement() {
+    let env = Env::default();
+    env.mock_all_auths();
+    env.ledger().with_mut(|li| li.timestamp = INITIAL_TIMESTAMP);
+
+    let admin = Address::generate(&env);
+    let arbiter = Address::generate(&env);
+    let new_arbiter = Address::generate(&env);
+    let freelancer = Address::generate(&env);
+    let client = Address::generate(&env);
+    let fee_recipient = Address::generate(&env);
+    let (token, token_admin) = create_token(&env, &admin);
+    token_admin.mint(&client, &10_000_000_000i128);
+
+    let escrow_id = env.register(EscrowContract, ());
+    let escrow = EscrowContractClient::new(&env, &escrow_id);
+    escrow.initialize(&admin, &arbiter, &token.address, &FEE_BPS, &fee_recipient);
+
+    let id = escrow.create_agreement(
+        &freelancer,
+        &client,
+        &String::from_str(&env, "t"),
+        &vec![
+            &env,
+            MilestoneInput {
+                title: String::from_str(&env, "M"),
+                amount: 1_000_000_000i128,
+            },
+        ],
+        &REVIEW_WINDOW,
+    );
+    escrow.fund_milestone(&id, &0);
+    escrow.submit_milestone(&id, &0, &String::from_str(&env, "ev"));
+    escrow.dispute_milestone(&id, &0, &String::from_str(&env, "reason"));
+
+    // Admin rotates global arbiter after the agreement was created.
+    escrow.update_config(&FEE_BPS, &fee_recipient, &new_arbiter);
+
+    // Only new_arbiter is authorized; old agreement's snapshotted arbiter is not -> panic.
+    env.mock_auths(&[MockAuth {
+        address: &new_arbiter,
+        invoke: &MockAuthInvoke {
+            contract: &escrow_id,
+            fn_name: "resolve_dispute",
+            args: (id, 0u32, 5_000u32).into_val(&env),
+            sub_invokes: &[],
+        },
+    }]);
+    escrow.resolve_dispute(&id, &0, &5_000);
+}
+
+#[test]
+fn client_can_dispute_funded_milestone_when_freelancer_ghosts() {
+    let t = TestContext::setup();
+    let amount = 1_000_000_000i128; // 100 USDC
+    let id = t.create_agreement(amount);
+    let client_start = t.token.balance(&t.client);
+
+    t.escrow.fund_milestone(&id, &0);
+    assert_eq!(t.token.balance(&t.escrow_id), amount);
+
+    // Freelancer ghosts without submitting; client disputes directly from Funded.
+    t.escrow.dispute_milestone(
+        &id,
+        &0,
+        &String::from_str(&t.env, "Freelancer stopped responding"),
+    );
+    assert_eq!(
+        t.env.events().all().filter_by_contract(&t.escrow_id),
+        [Disputed {
+            agreement_id: id,
+            index: 0,
+        }
+        .to_xdr(&t.env, &t.escrow_id)],
+    );
+
+    let ag_disputed = t.escrow.get_agreement(&id);
+    assert_eq!(
+        ag_disputed.milestones.get(0).unwrap().status,
+        MilestoneStatus::Disputed
+    );
+
+    // Pinned arbiter returns 100% to client (0 bps to freelancer).
+    t.escrow.resolve_dispute(&id, &0, &0);
+    assert_eq!(
+        t.env.events().all().filter_by_contract(&t.escrow_id),
+        [Resolved {
+            agreement_id: id,
+            index: 0,
+            freelancer_bps: 0,
+        }
+        .to_xdr(&t.env, &t.escrow_id)],
+    );
+
+    assert_eq!(t.token.balance(&t.client), client_start);
+    assert_eq!(t.token.balance(&t.freelancer), 0);
+    assert_eq!(t.token.balance(&t.fee_recipient), 0);
+    assert_eq!(t.token.balance(&t.escrow_id), 0);
+
+    let ag_resolved = t.escrow.get_agreement(&id);
+    let m = ag_resolved.milestones.get(0).unwrap();
+    assert_eq!(m.status, MilestoneStatus::Resolved);
+    assert_eq!(m.resolved_freelancer_bps, Some(0));
+}
+
+#[test]
+fn dispute_pending_milestone_fails() {
+    let t = TestContext::setup();
+    let id = t.create_agreement(1_000_000_000i128);
+    let r = t
+        .escrow
+        .try_dispute_milestone(&id, &0, &String::from_str(&t.env, "not funded yet"));
+    assert_eq!(r, Err(Ok(Error::InvalidStatus)));
+}
+
+#[test]
+fn create_agreement_validates_review_window_bounds() {
+    let t = TestContext::setup();
+    let ms = vec![
+        &t.env,
+        MilestoneInput {
+            title: String::from_str(&t.env, "M1"),
+            amount: 1_000_000,
+        },
+    ];
+
+    // 0-second review window rug-pull must be rejected.
+    let r_zero = t.escrow.try_create_agreement(
+        &t.freelancer,
+        &t.client,
+        &String::from_str(&t.env, "Zero window"),
+        &ms,
+        &0,
+    );
+    assert_eq!(r_zero, Err(Ok(Error::InvalidReviewWindow)));
+
+    // Below minimum (< 1 hour) must be rejected.
+    let r_low = t.escrow.try_create_agreement(
+        &t.freelancer,
+        &t.client,
+        &String::from_str(&t.env, "Too short"),
+        &ms,
+        &(MIN_REVIEW_WINDOW_SECS - 1),
+    );
+    assert_eq!(r_low, Err(Ok(Error::InvalidReviewWindow)));
+
+    // Above maximum (> 30 days) must be rejected.
+    let r_high = t.escrow.try_create_agreement(
+        &t.freelancer,
+        &t.client,
+        &String::from_str(&t.env, "Too long"),
+        &ms,
+        &(MAX_REVIEW_WINDOW_SECS + 1),
+    );
+    assert_eq!(r_high, Err(Ok(Error::InvalidReviewWindow)));
+
+    // Exact bounds succeed.
+    let id_min = t.escrow.create_agreement(
+        &t.freelancer,
+        &t.client,
+        &String::from_str(&t.env, "Min window"),
+        &ms,
+        &MIN_REVIEW_WINDOW_SECS,
+    );
+    let id_max = t.escrow.create_agreement(
+        &t.freelancer,
+        &t.client,
+        &String::from_str(&t.env, "Max window"),
+        &ms,
+        &MAX_REVIEW_WINDOW_SECS,
+    );
+    assert_eq!(id_min, 0);
+    assert_eq!(id_max, 1);
+}
+
+#[test]
+fn string_length_bounds_are_enforced() {
+    let t = TestContext::setup();
+    let valid_ms = vec![
+        &t.env,
+        MilestoneInput {
+            title: String::from_str(&t.env, "M1"),
+            amount: 1_000_000,
+        },
+    ];
+
+    let too_long_title = "a".repeat((MAX_TITLE_LEN + 1) as usize);
+    let r = t.escrow.try_create_agreement(
+        &t.freelancer,
+        &t.client,
+        &String::from_str(&t.env, &too_long_title),
+        &valid_ms,
+        &REVIEW_WINDOW,
+    );
+    assert_eq!(r, Err(Ok(Error::StringTooLong)));
+
+    let too_long_ms_title = "b".repeat((MAX_MILESTONE_TITLE_LEN + 1) as usize);
+    let r = t.escrow.try_create_agreement(
+        &t.freelancer,
+        &t.client,
+        &String::from_str(&t.env, "Valid title"),
+        &vec![
+            &t.env,
+            MilestoneInput {
+                title: String::from_str(&t.env, &too_long_ms_title),
+                amount: 1_000_000,
+            },
+        ],
+        &REVIEW_WINDOW,
+    );
+    assert_eq!(r, Err(Ok(Error::StringTooLong)));
+
+    let id = t.create_agreement(1_000_000);
+    t.escrow.fund_milestone(&id, &0);
+
+    let too_long_evidence = "c".repeat((MAX_EVIDENCE_LEN + 1) as usize);
+    let r = t
+        .escrow
+        .try_submit_milestone(&id, &0, &String::from_str(&t.env, &too_long_evidence));
+    assert_eq!(r, Err(Ok(Error::StringTooLong)));
+
+    let too_long_reason = "d".repeat((MAX_DISPUTE_REASON_LEN + 1) as usize);
+    let r = t
+        .escrow
+        .try_dispute_milestone(&id, &0, &String::from_str(&t.env, &too_long_reason));
+    assert_eq!(r, Err(Ok(Error::StringTooLong)));
+}
+
+#[test]
+fn get_next_id_tracks_created_agreements() {
+    let t = TestContext::setup();
+    assert_eq!(t.escrow.get_next_id(), 0);
+    let id0 = t.create_agreement(1_000_000);
+    assert_eq!(id0, 0);
+    assert_eq!(t.escrow.get_next_id(), 1);
+    let id1 = t.create_agreement(2_000_000);
+    assert_eq!(id1, 1);
+    assert_eq!(t.escrow.get_next_id(), 2);
+}
+
+#[test]
+fn default_150_bps_fee_scenario() {
+    let env = Env::default();
+    env.mock_all_auths();
+    env.ledger().with_mut(|li| li.timestamp = INITIAL_TIMESTAMP);
+
+    let admin = Address::generate(&env);
+    let arbiter = Address::generate(&env);
+    let freelancer = Address::generate(&env);
+    let client = Address::generate(&env);
+    let fee_recipient = Address::generate(&env);
+    let (token, token_admin) = create_token(&env, &admin);
+    let amount = 1_000_000_000i128; // 100 USDC (7 decimals)
+    token_admin.mint(&client, &amount);
+
+    let escrow_id = env.register(EscrowContract, ());
+    let escrow = EscrowContractClient::new(&env, &escrow_id);
+    escrow.initialize(&admin, &arbiter, &token.address, &150, &fee_recipient);
+
+    let id = escrow.create_agreement(
+        &freelancer,
+        &client,
+        &String::from_str(&env, "1.5% fee agreement"),
+        &vec![
+            &env,
+            MilestoneInput {
+                title: String::from_str(&env, "Deliverable"),
+                amount,
+            },
+        ],
+        &REVIEW_WINDOW,
+    );
+    escrow.fund_milestone(&id, &0);
+    escrow.submit_milestone(&id, &0, &String::from_str(&env, "https://example.com/pr"));
+    escrow.approve_milestone(&id, &0);
+
+    // 1.5% of 100 USDC = 1.5 USDC (15_000_000 stroops); freelancer gets 98.5 USDC (985_000_000).
+    assert_eq!(token.balance(&freelancer), 985_000_000);
+    assert_eq!(token.balance(&fee_recipient), 15_000_000);
+    assert_eq!(token.balance(&escrow_id), 0);
 }

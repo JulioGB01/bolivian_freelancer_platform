@@ -65,6 +65,7 @@ pub struct Resolved {
     pub agreement_id: u64,
     #[topic]
     pub index: u32,
+    pub freelancer_bps: u32,
 }
 
 #[contractevent]
