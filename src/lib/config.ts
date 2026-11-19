@@ -12,7 +12,7 @@ export const DEPLOYMENT = {
   rpcUrl: "https://soroban-testnet.stellar.org/",
   horizonUrl: "https://horizon-testnet.stellar.org",
   networkPassphrase: "Test SDF Network ; September 2015",
-  escrowContractId: "CDG4IJBASV35CIFBJ66O6HGCV3VWCLDKHCHAXS2QZFLXRKGP4LRNW2LO",
+  escrowContractId: "CAF4G4ACGMDYLPYPPGMVKTL3FTHVTKOR4OTD7YE5CQWCQ5X327E3DOUO",
   usdcContractId: "CAHWJDBZVQCKB3J5PLBQKJJJLG4BDYANSK4JTAMS2TYEKWRLQZFYDXR2",
   faucetContractId: "CB74EKQ5HJBY7NF277QJIQHI7W4QA6IOAPXW2ALSBV2GTTRE5VOXVO3O",
   usdcCode: "USDC",

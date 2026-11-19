@@ -8,7 +8,7 @@
 
 Non-custodial milestone escrow on Stellar for Bolivian freelancers who bring their own clients.
 
-**[Live app](https://bolivia-escrow.vercel.app)** · [Contract on testnet](https://stellar.expert/explorer/testnet/contract/CDG4IJBASV35CIFBJ66O6HGCV3VWCLDKHCHAXS2QZFLXRKGP4LRNW2LO) · [Demo script](docs/demo-script.md) · [How the contract works](docs/contract.md) · [Concept Audit & SCF Roadmap (ES)](docs/CONCEPT_AUDIT_AND_SCF_ROADMAP.md)
+**[Live app](https://bolivia-escrow.vercel.app)** · [Contract on testnet](https://stellar.expert/explorer/testnet/contract/CAF4G4ACGMDYLPYPPGMVKTL3FTHVTKOR4OTD7YE5CQWCQ5X327E3DOUO) · [Demo script](docs/demo-script.md) · [How the contract works](docs/contract.md) · [Concept Audit & SCF Roadmap (ES)](docs/CONCEPT_AUDIT_AND_SCF_ROADMAP.md)
 
 </div>
 
@@ -78,7 +78,7 @@ With a database, the platform holds the money and everyone has to trust the plat
 
 | | |
 |---|---|
-| Escrow contract | [`CDG4IJBA…NW2LO`](https://stellar.expert/explorer/testnet/contract/CDG4IJBASV35CIFBJ66O6HGCV3VWCLDKHCHAXS2QZFLXRKGP4LRNW2LO) |
+| Escrow contract | [`CAF4G4AC…DOUO`](https://stellar.expert/explorer/testnet/contract/CAF4G4ACGMDYLPYPPGMVKTL3FTHVTKOR4OTD7YE5CQWCQ5X327E3DOUO) |
 | Test USDC | [`CAHWJDBZ…DXR2`](https://stellar.expert/explorer/testnet/contract/CAHWJDBZVQCKB3J5PLBQKJJJLG4BDYANSK4JTAMS2TYEKWRLQZFYDXR2) (test asset, no real value) |
 | Test-USDC faucet | [`CB74EKQ5…VO3O`](https://stellar.expert/explorer/testnet/contract/CB74EKQ5HJBY7NF277QJIQHI7W4QA6IOAPXW2ALSBV2GTTRE5VOXVO3O) (1,000 test USDC per account per day, signed by the user) |
 | Default fee | **1.5% (`150 bps`)** (frozen per agreement at creation) |
