@@ -5,6 +5,8 @@ import "./globals.css";
 import BrandMark from "@/components/BrandMark";
 import { FooterText, ModeBanner } from "@/components/Chrome";
 import NavLinks, { HeaderRight } from "@/components/NavLinks";
+import CommandMenu from "@/components/CommandMenu";
+import { Toaster } from "@/components/ui/sonner";
 
 const interTight = Inter_Tight({ subsets: ["latin"], variable: "--font-inter-tight", display: "swap" });
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono", display: "swap" });
@@ -58,6 +60,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </div>
         </footer>
+        <CommandMenu />
+        <Toaster />
       </body>
     </html>
   );

@@ -1,10 +1,18 @@
 "use client";
 
-import { ArrowLink } from "@/components/Chrome";
+// Landing. Structure taken from the references and the DeFi landings studied:
+//   split hero with an agreement "sheet" (hairline data rows) → the three entrances →
+//   live contract totals (the page's one animated moment) → four steps → security → modes → FAQ → close.
+import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 import ProtocolStats from "@/components/ProtocolStats";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
 import { EXPLORER_URL, ESCROW_CONTRACT_ID } from "@/lib/config";
+import { ENTRANCES, SWATCH } from "@/lib/entrance";
 import { useT, type MsgKey } from "@/lib/i18n";
 import { setMode, useMode, type Mode } from "@/lib/mode";
+import { cn } from "@/lib/utils";
 
 const STEPS: [MsgKey, MsgKey][] = [
   ["home.s1t", "home.s1b"],
@@ -12,16 +20,24 @@ const STEPS: [MsgKey, MsgKey][] = [
   ["home.s3t", "home.s3b"],
   ["home.s4t", "home.s4b"],
 ];
-const STATS: [MsgKey, MsgKey][] = [
-  ["home.stat1v", "home.stat1l"],
-  ["home.stat2v", "home.stat2l"],
-  ["home.stat3v", "home.stat3l"],
+const SECURITY: [MsgKey, MsgKey][] = [
+  ["land.sec1t", "land.sec1b"],
+  ["land.sec2t", "land.sec2b"],
+  ["land.sec3t", "land.sec3b"],
+  ["land.sec4t", "land.sec4b"],
 ];
-const FEATURES: { title: MsgKey; body: MsgKey; cls: string; mark: string }[] = [
-  { title: "home.f1t", body: "home.f1b", cls: "bg-bo-yellow text-ink", mark: "bg-ink" },
-  { title: "home.f2t", body: "home.f2b", cls: "bg-brand-600 text-white", mark: "bg-lime" },
-  { title: "home.f3t", body: "home.f3b", cls: "bg-ink text-white", mark: "bg-bo-red" },
+const FAQ: [MsgKey, MsgKey][] = [
+  ["land.q1", "land.a1"],
+  ["land.q2", "land.a2"],
+  ["land.q3", "how.arbB"],
+  ["land.q4", "land.a4"],
+  ["land.q5", "land.a5"],
+  ["land.q6", "land.a6"],
 ];
+
+function Kicker({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <p className={cn("font-mono text-[11px] font-medium tracking-[0.18em] text-ink/50 uppercase", className)}>{children}</p>;
+}
 
 export default function Home() {
   const { t } = useT();
@@ -29,166 +45,216 @@ export default function Home() {
 
   return (
     <div className="space-y-24 pb-8 sm:space-y-32">
-      {/* Hero */}
-      <section className="px-3 pt-4 sm:px-5">
-        <div className="hero-grid relative mx-auto max-w-6xl overflow-hidden bg-ink text-white">
-          <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 bg-lime/20 blur-3xl" aria-hidden />
-          <div className="relative grid items-center gap-12 px-6 py-14 sm:px-12 sm:py-20 lg:grid-cols-[1.25fr_1fr]">
+      {/* Hero: headline left, agreement sheet right */}
+      <section className="mx-auto max-w-6xl px-5 pt-10 sm:pt-16">
+        <div className="grid gap-12 lg:grid-cols-[1.35fr_1fr] lg:gap-16">
+          <div className="flex flex-col justify-between">
             <div>
-              <p className="inline-flex items-center gap-2 border border-white/15 px-3 py-1 text-xs font-medium text-white/70">
-                <span className="bo-stripe inline-block h-2 w-5" aria-hidden />
-                {t("home.badge")}
-              </p>
-              <h1 className="mt-6 text-[2.75rem] font-semibold leading-[0.98] tracking-[-0.035em] sm:text-6xl lg:text-7xl">
+              <Kicker className="flex items-center gap-3 text-ink/60">
+                <span className="bo-stripe inline-block h-1.5 w-8" aria-hidden />
+                {t("land.kicker")}
+              </Kicker>
+              <h1 className="mt-7 text-[2.9rem] leading-[0.95] font-semibold tracking-[-0.045em] sm:text-7xl lg:text-[5.6rem]">
                 {t("home.title1")}
-                <span className="font-serif font-normal italic text-lime">{t("home.titleLocked")}</span>
+                <span className="font-serif font-normal tracking-[-0.02em] text-bo-green italic">{t("home.titleLocked")}</span>
                 {t("home.title2")}
               </h1>
-              <p className="mt-6 max-w-xl text-base leading-relaxed text-white/65 sm:text-lg">{t("home.lead")}</p>
-              <div className="mt-9 flex flex-wrap gap-3">
-                <ArrowLink href="/app/nuevo" variant="lime">
-                  {t("home.cta")}
-                </ArrowLink>
-                <ArrowLink href="/app" variant="outline">
-                  {t("home.cta2")}
-                </ArrowLink>
+            </div>
+            <div className="mt-10 grid gap-8 border-t border-ink pt-6 sm:grid-cols-[1fr_auto] sm:items-end">
+              <p className="max-w-md text-base leading-relaxed text-ink/65">{t("home.lead")}</p>
+              <div className="flex flex-wrap gap-2">
+                <Button asChild size="lg">
+                  <Link href="/freelancer">
+                    {t("ent.freelancer.cta")} <ArrowUpRight />
+                  </Link>
+                </Button>
+                <Button asChild size="lg" variant="outline">
+                  <Link href="/como-funciona">{t("nav.how")}</Link>
+                </Button>
               </div>
             </div>
+          </div>
 
-            {/* Product mockup with example values */}
-            <div className="relative mx-auto w-full max-w-sm" aria-hidden>
-              <div className="absolute -bottom-6 -left-6 z-10 hidden rotate-[-4deg] bg-bo-yellow px-4 py-3 text-ink shadow-xl sm:block">
-                <p className="text-[10px] font-semibold uppercase tracking-wider">{t("home.verified")}</p>
-                <p className="font-serif text-xl italic">✓ on-chain</p>
+          {/* Agreement sheet with hairline rows (example values, labelled as such) */}
+          <div className="relative self-end" aria-hidden>
+            <div className="border border-ink bg-white">
+              <div className="flex items-center justify-between border-b border-ink px-5 py-3">
+                <Kicker>{t("land.fichaK")}</Kicker>
+                <span className="flex gap-1">
+                  <span className="size-2 bg-bo-red" />
+                  <span className="size-2 bg-bo-yellow" />
+                  <span className="size-2 bg-bo-green" />
+                </span>
               </div>
-              <div className=" bg-white p-5 text-ink shadow-2xl">
-                <div className="flex items-center justify-between">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-ink/40">{t("home.example")}</p>
-                  <span className="h-2 w-2 bg-lime" />
+              <dl className="divide-y divide-line px-5 text-sm">
+                <Row k={t("land.fRow1")} v={t("home.exampleTitle")} />
+                <Row k={t("land.fRow3")} v={t("land.fRow3v")} mono />
+              </dl>
+              <div className="mx-5 my-4 bg-ink p-5 text-white">
+                <p className="font-mono text-[11px] tracking-[0.18em] text-white/50 uppercase">{t("land.fRow2")}</p>
+                <p className="mt-2 text-5xl font-semibold tracking-[-0.04em] tabular-nums">
+                  400<span className="text-white/35">.00</span>
+                  <span className="ml-2 font-mono text-sm font-normal tracking-normal text-lime">USDC</span>
+                </p>
+                <div className="mt-4 grid grid-cols-3 gap-1">
+                  <span className="h-1.5 bg-white/60" />
+                  <span className="h-1.5 bg-lime" />
+                  <span className="h-1.5 bg-white/15" />
                 </div>
-                <p className="mt-1 font-semibold">{t("home.exampleTitle")}</p>
-                <div className="mt-4 bg-ink p-5 text-white">
-                  <p className="text-xs text-white/60">🔒 {t("home.exampleLocked")}</p>
-                  <p className="mt-1 text-4xl font-semibold tracking-tight">
-                    400<span className="text-white/40">.00</span> <span className="text-sm font-medium text-lime">USDC</span>
-                  </p>
-                  <div className="mt-4 flex h-1.5 overflow-hidden bg-white/15">
-                    <div className="w-1/3 bg-white/50" />
-                    <div className="w-1/3 bg-lime" />
-                  </div>
-                </div>
-                <ul className="mt-3 divide-y divide-line text-sm">
+              </div>
+              <div className="px-5 pb-2">
+                <Kicker className="pb-1">{t("land.fRow4")}</Kicker>
+                <ul className="divide-y divide-line text-sm">
                   {(
                     [
                       ["home.ex1", "st.paid", "bg-ink text-white"],
-                      ["home.ex2", "st.locked", "bg-lime text-ink"],
-                      ["home.ex3", "st.notFunded", "bg-paper text-ink/60"],
+                      ["home.ex2", "st.locked", "bg-bo-green text-white"],
+                      ["home.ex3", "st.notFunded", "border border-line text-ink/60"],
                     ] as [MsgKey, MsgKey, string][]
-                  ).map(([title, status, cls]) => (
-                    <li key={title} className="flex items-center justify-between py-2.5">
-                      <span>{t(title)}</span>
-                      <span className={` px-2.5 py-0.5 text-xs font-semibold ${cls}`}>{t(status)}</span>
+                  ).map(([title, status, cls], i) => (
+                    <li key={title} className="flex items-center justify-between py-3">
+                      <span className="flex items-baseline gap-3">
+                        <span className="font-serif text-ink/40 italic">0{i + 1}</span>
+                        {t(title)}
+                      </span>
+                      <span className={cn("px-2 py-0.5 text-[11px] font-semibold", cls)}>{t(status)}</span>
                     </li>
                   ))}
                 </ul>
               </div>
             </div>
+            <div className="absolute -bottom-4 -left-4 -z-10 h-full w-full border border-ink/20" />
           </div>
         </div>
       </section>
 
-      <ProtocolStats />
-
-      {/* Big numbers */}
+      {/* Three entrances */}
       <section className="mx-auto max-w-6xl px-5">
-        <div className="grid gap-px overflow-hidden border border-ink bg-ink sm:grid-cols-3">
-          {STATS.map(([v, l]) => (
-            <div key={v} className="bg-paper p-8">
-              <p className="text-6xl font-semibold tracking-[-0.04em] sm:text-7xl">{t(v)}</p>
-              <p className="mt-3 max-w-[16rem] text-sm text-ink/60">{t(l)}</p>
-            </div>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <Kicker>{t("ent.kicker")}</Kicker>
+            <h2 className="mt-3 text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">{t("ent.title")}</h2>
+          </div>
+        </div>
+        <div className="mt-8 grid border border-ink md:grid-cols-3">
+          {ENTRANCES.map((e, i) => (
+            <Link
+              key={e.id}
+              href={e.href}
+              className={cn(
+                "group relative flex min-h-72 flex-col justify-between bg-white p-7 transition-colors hover:bg-paper",
+                i > 0 && "border-t border-ink md:border-t-0 md:border-l",
+              )}
+            >
+              <span className={cn("absolute inset-x-0 top-0 h-1.5", SWATCH[e.color].bar)} aria-hidden />
+              <div className="flex items-start justify-between pt-2">
+                <span className="font-mono text-[11px] tracking-[0.18em] text-ink/50">{e.n}</span>
+                <span className="grid size-9 place-items-center border border-ink transition-colors group-hover:bg-ink group-hover:text-white">
+                  <ArrowUpRight className="size-4" />
+                </span>
+              </div>
+              <div>
+                <h3 className="text-3xl font-semibold tracking-[-0.03em]">{t(e.name)}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-ink/60">{t(e.blurb)}</p>
+                <p className="mt-6 text-sm font-semibold underline decoration-ink/25 underline-offset-4 group-hover:decoration-ink">{t(e.cta)}</p>
+              </div>
+            </Link>
           ))}
         </div>
       </section>
 
-      {/* How it works: editorial list with thin rules */}
-      <section className="mx-auto grid max-w-6xl gap-10 px-5 lg:grid-cols-[1fr_1.6fr]">
-        <div>
-          <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-ink/50">{t("home.howKicker")}</p>
-          <h2 className="mt-3 text-5xl font-semibold leading-none tracking-[-0.03em] sm:text-6xl">
-            {t("home.how")}
-            <span className="font-serif font-normal italic text-brand-600">.</span>
-          </h2>
+      {/* Live contract totals: the page's one animated moment */}
+      <ProtocolStats />
+
+      {/* Four steps */}
+      <section className="mx-auto max-w-6xl px-5">
+        <div className="flex flex-wrap items-end justify-between gap-6">
+          <div>
+            <Kicker>{t("land.howK")}</Kicker>
+            <h2 className="mt-3 max-w-xl text-4xl leading-[1.02] font-semibold tracking-[-0.03em] sm:text-5xl">{t("land.howT")}</h2>
+          </div>
+          <Button asChild variant="outline">
+            <Link href="/como-funciona">
+              {t("nav.how")} <ArrowUpRight />
+            </Link>
+          </Button>
         </div>
-        <ol className="border-t border-ink">
+        <ol className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {STEPS.map(([title, body], i) => (
-            <li key={title} className="grid grid-cols-[3.5rem_1fr] gap-4 border-b border-line py-6 sm:grid-cols-[5rem_1fr_1.3fr]">
-              <span className="font-serif text-3xl italic text-ink/40">0{i + 1}</span>
-              <p className="text-lg font-semibold">{t(title)}</p>
-              <p className="col-start-2 text-sm leading-relaxed text-ink/60 sm:col-start-3">{t(body)}</p>
+            <li
+              key={title}
+              className={cn("flex min-h-60 flex-col justify-between p-6", i === 0 ? "bg-ink text-white" : "border border-line bg-white")}
+            >
+              <span className={cn("font-serif text-4xl italic", i === 0 ? "text-lime" : "text-ink/30")}>0{i + 1}</span>
+              <div>
+                <p className="text-lg font-semibold">{t(title)}</p>
+                <p className={cn("mt-2 text-sm leading-relaxed", i === 0 ? "text-white/65" : "text-ink/60")}>{t(body)}</p>
+              </div>
             </li>
           ))}
         </ol>
       </section>
 
-      {/* Why trust it: colored blocks */}
-      <section className="mx-auto max-w-6xl px-5">
-        <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-ink/50">{t("home.whyKicker")}</p>
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
-          {FEATURES.map((f) => (
-            <div key={f.title} className={`flex min-h-64 flex-col justify-between p-7 ${f.cls}`}>
-              <span className={`h-3 w-3 ${f.mark}`} aria-hidden />
-              <div>
-                <h3 className="text-2xl font-semibold tracking-tight">{t(f.title)}</h3>
-                <p className="mt-3 text-sm leading-relaxed opacity-80">{t(f.body)}</p>
-              </div>
+      {/* Security */}
+      <section className="bg-ink py-20 text-white sm:py-24">
+        <div className="mx-auto grid max-w-6xl gap-12 px-5 lg:grid-cols-[1fr_1.5fr]">
+          <div className="flex flex-col justify-between gap-8">
+            <div>
+              <Kicker className="text-white/50">{t("land.secK")}</Kicker>
+              <h2 className="mt-3 text-4xl leading-[1.02] font-semibold tracking-[-0.03em] sm:text-5xl">
+                {t("land.secT")}
+              </h2>
             </div>
-          ))}
+            <div className="flex flex-wrap gap-2">
+              <Button asChild variant="lime">
+                <Link href="/verificar">
+                  {t("land.verifyCta")} <ArrowUpRight />
+                </Link>
+              </Button>
+              <Button asChild variant="outline-light">
+                <a href={`${EXPLORER_URL}/contract/${ESCROW_CONTRACT_ID}`} target="_blank" rel="noreferrer noopener">
+                  Stellar Expert <ArrowUpRight />
+                </a>
+              </Button>
+            </div>
+          </div>
+          <dl className="grid border-t border-white/20 sm:grid-cols-2">
+            {SECURITY.map(([title, body], i) => (
+              <div key={title} className={cn("border-b border-white/20 py-7 sm:pr-8", i % 2 === 1 && "sm:border-l sm:pl-8")}>
+                <dt className="flex items-center gap-3 text-lg font-semibold">
+                  <span className={cn("size-2", ["bg-bo-red", "bg-bo-yellow", "bg-bo-green", "bg-lime"][i])} aria-hidden />
+                  {t(title)}
+                </dt>
+                <dd className="mt-3 text-sm leading-relaxed text-white/60">{t(body)}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
       </section>
 
       {/* Two ways to try it */}
       <section className="mx-auto max-w-6xl px-5">
-        <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-ink/50">{t("home.tryKicker")}</p>
+        <Kicker>{t("home.tryKicker")}</Kicker>
         <h2 className="mt-3 text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">{t("home.modesTitle")}</h2>
-        <div className="mt-8 grid gap-4 md:grid-cols-2">
+        <div className="mt-8 grid border border-ink md:grid-cols-2">
           {(
             [
               ["demo", "home.modeDemoT", "home.modeDemoB"],
               ["testnet", "home.modeTestT", "home.modeTestB"],
             ] as [Mode, MsgKey, MsgKey][]
-          ).map(([m, title, body]) => {
+          ).map(([m, title, body], i) => {
             const active = mode === m;
             return (
-              <div
-                key={m}
-                className={`flex flex-col border p-7 ${active ? "border-ink bg-white" : "border-line bg-paper"}`}
-              >
-                <div className="flex items-center justify-between">
+              <div key={m} className={cn("flex flex-col p-7", active ? "bg-white" : "bg-paper", i > 0 && "border-t border-ink md:border-t-0 md:border-l")}>
+                <div className="flex items-center justify-between gap-3">
                   <h3 className="text-xl font-semibold">{t(title)}</h3>
-                  {active && (
-                    <span className=" bg-ink px-3 py-1 text-xs font-semibold text-lime">✓ {t("home.current")}</span>
-                  )}
+                  {active && <span className="bg-ink px-2.5 py-1 font-mono text-[10px] tracking-wider text-lime uppercase">{t("home.current")}</span>}
                 </div>
                 <p className="mt-3 flex-1 text-sm leading-relaxed text-ink/60">{t(body)}</p>
-                {m === "testnet" && (
-                  <a
-                    href={`${EXPLORER_URL}/contract/${ESCROW_CONTRACT_ID}`}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="mt-4 font-mono text-xs text-brand-700 underline decoration-brand-200 underline-offset-4"
-                  >
-                    {ESCROW_CONTRACT_ID.slice(0, 10)}…{ESCROW_CONTRACT_ID.slice(-6)} ↗
-                  </a>
-                )}
                 {!active && (
-                  <button
-                    type="button"
-                    onClick={() => setMode(m)}
-                    className="mt-6 self-start bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-black"
-                  >
-                    {t("home.useThis")} ↗
-                  </button>
+                  <Button className="mt-6 self-start" size="sm" onClick={() => setMode(m)}>
+                    {t("home.useThis")} <ArrowUpRight />
+                  </Button>
                 )}
               </div>
             );
@@ -196,21 +262,54 @@ export default function Home() {
         </div>
       </section>
 
+      {/* FAQ */}
+      <section className="mx-auto grid max-w-6xl gap-10 px-5 lg:grid-cols-[1fr_1.6fr]">
+        <div>
+          <Kicker>{t("land.faqK")}</Kicker>
+          <h2 className="mt-3 text-4xl leading-[1.02] font-semibold tracking-[-0.03em] sm:text-5xl">
+            {t("land.faqT")}
+            <span className="font-serif font-normal text-bo-green italic">.</span>
+          </h2>
+        </div>
+        <Accordion type="single" collapsible className="border-t border-ink">
+          {FAQ.map(([q, a]) => (
+            <AccordionItem key={q} value={q} className="border-line">
+              <AccordionTrigger className="py-5 text-base font-semibold hover:no-underline">{t(q)}</AccordionTrigger>
+              <AccordionContent className="max-w-2xl pb-5 text-sm leading-relaxed text-ink/65">{t(a)}</AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      </section>
+
       {/* Closing call to action */}
       <section className="px-3 sm:px-5">
-        <div className="mx-auto max-w-6xl bg-brand-600 px-6 py-14 text-white sm:px-12">
-          <h2 className="max-w-3xl text-4xl font-semibold leading-[1.05] tracking-[-0.03em] sm:text-5xl">
+        <div className="relative mx-auto max-w-6xl overflow-hidden bg-bo-green px-6 py-14 text-white sm:px-12 sm:py-20">
+          <h2 className="max-w-3xl text-4xl leading-[1.02] font-semibold tracking-[-0.03em] sm:text-6xl">
             {t("home.ctaBandT")}
-            <span className="font-serif font-normal italic text-bo-yellow">{t("home.ctaBandAccent")}</span>.
+            <span className="font-serif font-normal text-bo-yellow italic">{t("home.ctaBandAccent")}</span>.
           </h2>
-          <p className="mt-4 max-w-xl text-white/75">{t("home.ctaBandB")}</p>
-          <div className="mt-8">
-            <ArrowLink href="/app/nuevo" variant="light">
-              {t("home.cta")}
-            </ArrowLink>
+          <p className="mt-5 max-w-xl text-white/75">{t("home.ctaBandB")}</p>
+          <div className="mt-9 flex flex-wrap gap-2">
+            {ENTRANCES.map((e) => (
+              <Button key={e.id} asChild variant={e.id === "freelancer" ? "light" : "outline-light"}>
+                <Link href={e.href}>
+                  {t(e.cta)} <ArrowUpRight />
+                </Link>
+              </Button>
+            ))}
           </div>
+          <div className="bo-stripe absolute inset-x-0 bottom-0 h-1.5" aria-hidden />
         </div>
       </section>
+    </div>
+  );
+}
+
+function Row({ k, v, mono }: { k: string; v: string; mono?: boolean }) {
+  return (
+    <div className="grid grid-cols-[6.5rem_1fr] py-3">
+      <dt className="text-ink/50">{k}</dt>
+      <dd className={cn("text-right font-medium", mono && "font-mono text-xs leading-5")}>{v}</dd>
     </div>
   );
 }

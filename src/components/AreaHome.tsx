@@ -3,10 +3,11 @@
 // Home of one role's area: totals at the top, then that role's agreements.
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import NumberFlow from "@number-flow/react";
 import AgreementCard from "./AgreementCard";
 import { ESCROW_CHANGED, getEscrow, lockedAmountOf } from "@/lib/escrow";
 import { errorMessage } from "@/lib/errors";
-import { BPS_DENOMINATOR, formatAmount } from "@/lib/format";
+import { BPS_DENOMINATOR, USDC_DECIMALS, formatAmount } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { actionsNeeded } from "@/lib/status";
 import { useNow } from "@/lib/useNow";
@@ -67,13 +68,13 @@ export default function AreaHome({ area }: { area: "freelancer" | "client" }) {
   return (
     <Header area={area}>
       <div className="grid gap-3 sm:grid-cols-3">
-        <Stat label={isFreelancer ? t("dash.lockedForMe") : t("dash.lockedByMe")} value={`${formatAmount(locked)} USDC`} accent />
+        <Stat label={isFreelancer ? t("dash.lockedForMe") : t("dash.lockedByMe")} value={locked / 10 ** USDC_DECIMALS} money accent />
         {isFreelancer ? (
-          <Stat label={t("fl.paid")} value={`${formatAmount(settledNet)} USDC`} />
+          <Stat label={t("fl.paid")} value={settledNet / 10 ** USDC_DECIMALS} money />
         ) : (
-          <Stat label={t("cl.proposals")} value={String(proposals.length)} />
+          <Stat label={t("cl.proposals")} value={proposals.length} />
         )}
-        <Stat label={t("dash.waiting")} value={t("dash.actions", { n: todo })} />
+        <Stat label={t("dash.waiting")} value={todo} suffix={t("dash.actions", { n: todo }).replace(String(todo), "").trim()} />
       </div>
 
       {error && <p className=" bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
@@ -146,11 +147,14 @@ function Header({ area, children }: { area: "freelancer" | "client"; children: R
   );
 }
 
-function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+function Stat({ label, value, money, suffix, accent }: { label: string; value: number; money?: boolean; suffix?: string; accent?: boolean }) {
   return (
     <div className={` border p-6 ${accent ? "border-ink bg-ink text-white" : "border-line bg-white"}`}>
       <p className={`text-xs font-medium uppercase tracking-wider ${accent ? "text-white/60" : "text-ink/50"}`}>{label}</p>
-      <p className={`mt-3 text-3xl font-semibold tracking-tight ${accent ? "text-lime" : "text-ink"}`}>{value}</p>
+      <p className={`mt-3 text-3xl font-semibold tracking-tight tabular-nums ${accent ? "text-lime" : "text-ink"}`}>
+        <NumberFlow value={value} locales="en-US" format={money ? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : undefined} />
+        {(money || suffix) && <span className={`ml-2 font-mono text-sm font-normal ${accent ? "text-white/50" : "text-ink/40"}`}>{money ? "USDC" : suffix}</span>}
+      </p>
     </div>
   );
 }
