@@ -1,14 +1,34 @@
-// Environment configuration. In demo mode the app runs a fully client-side
-// mock of the Soroban contract; in real mode it reads the testnet values below.
-// Values must come from deployments/testnet.json and official Stellar docs,
-// never typed from memory (AGENTS.md rule 1).
+// Environment configuration.
+//
+// The app has two modes, chosen by the user at runtime (see lib/mode.ts):
+//   - "demo":    an in-browser simulation of the contract, no wallet needed.
+//   - "testnet": the real Soroban contract on Stellar testnet, signed with the user's wallet.
+//
+// Testnet values default to the deployment in deployments/testnet.json (created by
+// scripts/deploy-testnet.sh). Env vars can override them, e.g. for a redeploy.
 
-export const DEMO_MODE = (process.env.NEXT_PUBLIC_DEMO_MODE ?? "true") === "true";
+export const DEPLOYMENT = {
+  network: "testnet",
+  rpcUrl: "https://soroban-testnet.stellar.org/",
+  horizonUrl: "https://horizon-testnet.stellar.org",
+  networkPassphrase: "Test SDF Network ; September 2015",
+  escrowContractId: "CDG4IJBASV35CIFBJ66O6HGCV3VWCLDKHCHAXS2QZFLXRKGP4LRNW2LO",
+  usdcContractId: "CAHWJDBZVQCKB3J5PLBQKJJJLG4BDYANSK4JTAMS2TYEKWRLQZFYDXR2",
+  usdcCode: "USDC",
+  usdcIssuer: "GBAKHIEBPVK2AUODWXKDED4P27WNVTEIZZ647PGCJRFSQVZKU4KB3EGS",
+} as const;
 
-export const STELLAR_NETWORK = process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? "testnet";
-export const STELLAR_RPC_URL = process.env.NEXT_PUBLIC_STELLAR_RPC_URL ?? "";
-export const NETWORK_PASSPHRASE = process.env.NEXT_PUBLIC_NETWORK_PASSPHRASE ?? "";
-export const ESCROW_CONTRACT_ID = process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ID ?? "";
-export const USDC_CONTRACT_ID = process.env.NEXT_PUBLIC_USDC_CONTRACT_ID ?? "";
-export const EXPLORER_URL =
-  process.env.NEXT_PUBLIC_EXPLORER_URL ?? "https://stellar.expert/explorer/testnet";
+const env = (v: string | undefined, fallback: string) => (v && v.trim() ? v.trim() : fallback);
+
+/** Mode used when the visitor has not chosen one yet. */
+export const DEFAULT_MODE: "demo" | "testnet" =
+  process.env.NEXT_PUBLIC_DEFAULT_MODE === "testnet" ? "testnet" : "demo";
+
+export const STELLAR_RPC_URL = env(process.env.NEXT_PUBLIC_STELLAR_RPC_URL, DEPLOYMENT.rpcUrl);
+export const HORIZON_URL = env(process.env.NEXT_PUBLIC_HORIZON_URL, DEPLOYMENT.horizonUrl);
+export const NETWORK_PASSPHRASE = env(process.env.NEXT_PUBLIC_NETWORK_PASSPHRASE, DEPLOYMENT.networkPassphrase);
+export const ESCROW_CONTRACT_ID = env(process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ID, DEPLOYMENT.escrowContractId);
+export const USDC_CONTRACT_ID = env(process.env.NEXT_PUBLIC_USDC_CONTRACT_ID, DEPLOYMENT.usdcContractId);
+export const USDC_CODE = env(process.env.NEXT_PUBLIC_USDC_CODE, DEPLOYMENT.usdcCode);
+export const USDC_ISSUER = env(process.env.NEXT_PUBLIC_USDC_ISSUER, DEPLOYMENT.usdcIssuer);
+export const EXPLORER_URL = env(process.env.NEXT_PUBLIC_EXPLORER_URL, "https://stellar.expert/explorer/testnet");

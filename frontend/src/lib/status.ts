@@ -1,15 +1,14 @@
-// Plain-language status and "what happens next" text for each milestone, per role.
+// Plain-language status and "what happens next" for each milestone, per role.
+// Returns translation keys (lib/i18n.ts) so the text follows the UI language.
+import type { MsgKey } from "./i18n";
 import type { Agreement, Milestone } from "./types";
 import type { Role } from "./wallet";
 
 export interface NextStep {
-  /** Short plain label shown in the badge. */
-  label: string;
-  /** One sentence telling the viewer what happens next. */
-  text: string;
+  label: MsgKey;
+  text: MsgKey;
   /** True when the viewer is the one who has to act. */
   needsAction: boolean;
-  /** Visual tone of the milestone. */
   tone: "waiting" | "safe" | "review" | "danger" | "done" | "neutral";
 }
 
@@ -21,36 +20,44 @@ export function nextStep(agreement: Agreement, m: Milestone, role: Role, nowSecs
   const windowOpen = nowSecs < reviewDeadline(agreement, m);
   switch (m.status) {
     case "Pending":
-      return role === "client"
-        ? { label: "Not funded", text: "Lock the funds so the freelancer can start this milestone.", needsAction: true, tone: "waiting" }
-        : role === "freelancer"
-          ? { label: "Not funded", text: "Waiting for the client to lock the funds. Don't start this milestone yet.", needsAction: false, tone: "waiting" }
-          : { label: "Not funded", text: "Waiting for the client to lock the funds.", needsAction: false, tone: "waiting" };
+      return {
+        label: "st.notFunded",
+        text: role === "client" ? "st.pendingClient" : role === "freelancer" ? "st.pendingFreelancer" : "st.pendingOther",
+        needsAction: role === "client",
+        tone: "waiting",
+      };
     case "Funded":
-      return role === "freelancer"
-        ? { label: "Funds locked", text: "The money is locked in escrow. It is safe to start. Submit your work when it is ready.", needsAction: true, tone: "safe" }
-        : { label: "Funds locked", text: "The money is locked in escrow. Waiting for the freelancer to deliver.", needsAction: false, tone: "safe" };
+      return {
+        label: "st.locked",
+        text: role === "freelancer" ? "st.fundedFreelancer" : "st.fundedOther",
+        needsAction: role === "freelancer",
+        tone: "safe",
+      };
     case "Submitted":
       if (windowOpen) {
-        return role === "client"
-          ? { label: "In review", text: "Review the work, then approve it or open a dispute before the review window ends.", needsAction: true, tone: "review" }
-          : { label: "In review", text: "Work delivered. Waiting for the client's review.", needsAction: false, tone: "review" };
+        return {
+          label: "st.inReview",
+          text: role === "client" ? "st.reviewClient" : "st.reviewOther",
+          needsAction: role === "client",
+          tone: "review",
+        };
       }
       return role === "freelancer"
-        ? { label: "Ready to claim", text: "The review window ended without a dispute. You can claim the payment now.", needsAction: true, tone: "review" }
-        : role === "client"
-          ? { label: "Review ended", text: "The review window ended. You can still approve; the freelancer can now claim the payment.", needsAction: false, tone: "review" }
-          : { label: "Review ended", text: "The review window ended. The freelancer can claim the payment.", needsAction: false, tone: "review" };
+        ? { label: "st.readyToClaim", text: "st.claimFreelancer", needsAction: true, tone: "review" }
+        : { label: "st.reviewEnded", text: role === "client" ? "st.endedClient" : "st.endedOther", needsAction: false, tone: "review" };
     case "Disputed":
-      return role === "arbiter"
-        ? { label: "Disputed", text: "Decide how to split the locked amount between both sides.", needsAction: true, tone: "danger" }
-        : { label: "Disputed", text: "The money stays locked while the arbiter reviews the dispute.", needsAction: false, tone: "danger" };
+      return {
+        label: "st.disputed",
+        text: role === "arbiter" ? "st.disputedArbiter" : "st.disputedOther",
+        needsAction: role === "arbiter",
+        tone: "danger",
+      };
     case "Released":
-      return { label: "Paid", text: "Paid to the freelancer (minus the platform fee).", needsAction: false, tone: "done" };
+      return { label: "st.paid", text: "st.paidText", needsAction: false, tone: "done" };
     case "Resolved":
-      return { label: "Settled", text: "The arbiter split the amount between both sides.", needsAction: false, tone: "done" };
+      return { label: "st.settled", text: "st.settledText", needsAction: false, tone: "done" };
     case "Refunded":
-      return { label: "Refunded", text: "The full amount went back to the client.", needsAction: false, tone: "neutral" };
+      return { label: "st.refunded", text: "st.refundedText", needsAction: false, tone: "neutral" };
   }
 }
 

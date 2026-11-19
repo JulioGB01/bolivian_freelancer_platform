@@ -27,6 +27,23 @@ Newest entry on top. One entry per task. Template:
 
 ## Log
 
+## 2026-11-18 - Testnet deployment, real wallet mode, Spanish UI, CI - Done
+- Decisions confirmed by Cesar: D-03 fee 5% (500 bps), D-04 own test USDC, D-11 Spanish default
+  with English toggle, D-12 Vercel.
+- Testnet: identities bfe-admin/arbiter/treasury/freelancer/client (Stellar CLI keystore, not in
+  the repo). Test USDC SAC `CAHWJDBZ…DXR2`, escrow `CDG4IJBA…NW2LO`, initialized with 500 bps.
+  Fee recipient moved to `bfe-treasury` via `update_config`: the admin issues the test USDC, and a
+  payment back to a classic issuer burns it. Ids in `deployments/testnet.json`.
+- `scripts/deploy-testnet.sh` and `scripts/smoke-testnet.sh` filled with commands checked against
+  `--help` (Stellar CLI 30.0.1). Smoke test: 100 locked, 95 paid to freelancer, 5 fee. Passed.
+- Frontend: runtime mode switch (demo / testnet); RealEscrow over generated bindings; Stellar
+  Wallets Kit (explicit modules; `defaultModules()` pulls a MetaMask adapter that fails to resolve);
+  Friendbot, trustline and `/api/faucet` (needs `FAUCET_SECRET` env var); es/en i18n.
+- Verified: bindings call shapes run against testnet from a script with test signers (create,
+  fund, read, missing id -> isErr, double fund -> Error(Contract, #5)); faucet sends 1,000 test USDC;
+  testnet agreement renders in the browser; wallet picker opens. `npm run lint` and `npm run build` pass.
+- Not verified here: signing through a browser wallet extension (none installed in the test browser).
+
 ## 2026-11-18 - UI/UX polish + first GitHub publish - Done
 - What changed (frontend only; contract untouched):
   - Each milestone now shows a plain-language status ("Not funded", "Funds locked", "In review",

@@ -1,8 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { connect, disconnect, getConnectedWallet, type ConnectedWallet } from "./wallet";
-import { resetEscrow } from "./escrow";
+import { getEscrow, resetEscrow } from "./escrow";
+import { getMode } from "./mode";
+import {
+  connectRealWallet,
+  disconnectRealWallet,
+  forgetWallet,
+  getConnectedWallet,
+  saveWallet,
+  type ConnectedWallet,
+} from "./wallet";
 
 // Every component calls useWallet() with its own state, so a connect/disconnect in the
 // header must be broadcast to the rest of the page (and to other tabs via "storage").
@@ -22,18 +30,35 @@ export function useWallet() {
     };
   }, []);
 
+  /** Demo mode: connect as one of the demo identities. */
   const connectAs = useCallback((identity: ConnectedWallet) => {
     resetEscrow();
-    setWallet(connect(identity));
+    setWallet(saveWallet(identity));
+    window.dispatchEvent(new Event(EVENT));
+  }, []);
+
+  /** Testnet mode: open the wallet picker (Freighter, xBull, Lobstr, …). */
+  const connectReal = useCallback(async () => {
+    const address = await connectRealWallet();
+    let role: ConnectedWallet["role"] = "viewer";
+    try {
+      const cfg = await getEscrow().getConfig();
+      if (cfg.arbiter === address) role = "arbiter";
+    } catch {
+      /* config unreachable: keep viewer */
+    }
+    resetEscrow();
+    setWallet(saveWallet({ address, role, kind: "testnet" }));
     window.dispatchEvent(new Event(EVENT));
   }, []);
 
   const disconnectWallet = useCallback(() => {
-    disconnect();
+    if (getMode() === "testnet") void disconnectRealWallet();
+    forgetWallet();
     resetEscrow();
     setWallet(null);
     window.dispatchEvent(new Event(EVENT));
   }, []);
 
-  return { wallet, connectAs, disconnectWallet };
+  return { wallet, connectAs, connectReal, disconnectWallet };
 }

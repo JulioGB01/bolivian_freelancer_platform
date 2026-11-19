@@ -4,6 +4,7 @@ import { useState } from "react";
 import { BPS_DENOMINATOR, formatAmount, formatCountdown, formatDate } from "@/lib/format";
 import { getEscrow, notifyEscrowChanged } from "@/lib/escrow";
 import { errorMessage } from "@/lib/errors";
+import { useT } from "@/lib/i18n";
 import { nextStep, reviewDeadline, TONE_BADGE, TONE_BORDER } from "@/lib/status";
 import { useNow } from "@/lib/useNow";
 import type { Agreement, Milestone } from "@/lib/types";
@@ -23,8 +24,10 @@ export default function MilestoneRow({
   role: Role;
   onChanged: () => void;
 }) {
+  const { t, lang } = useT();
   const [phase, setPhase] = useState<TxPhase>("idle");
   const [err, setErr] = useState<string>();
+  const [txHash, setTxHash] = useState<string | null>(null);
   const [evidence, setEvidence] = useState("");
   const [reason, setReason] = useState("");
   const [splitPct, setSplitPct] = useState(50);
@@ -35,22 +38,26 @@ export default function MilestoneRow({
   const fee = Math.floor((milestone.amount * agreement.feeBps) / BPS_DENOMINATOR);
   const net = milestone.amount - fee;
   const step = nextStep(agreement, milestone, role, now);
+  const amount = formatAmount(milestone.amount);
 
   async function run(fn: () => Promise<void>, confirmText?: string) {
     if (confirmText && !window.confirm(confirmText)) return;
     setPhase("pending");
     setErr(undefined);
+    setTxHash(null);
     try {
       await fn();
+      setTxHash(getEscrow().lastTxHash ?? null);
       setPhase("success");
       onChanged();
       notifyEscrowChanged();
     } catch (e) {
       setPhase("error");
-      setErr(errorMessage(e));
+      setErr(errorMessage(e, t));
     }
   }
 
+  const busy = phase === "pending";
   const can = {
     fund: role === "client" && milestone.status === "Pending",
     submit: role === "freelancer" && milestone.status === "Funded",
@@ -58,33 +65,29 @@ export default function MilestoneRow({
     claim: role === "freelancer" && milestone.status === "Submitted" && now >= deadline,
     dispute: role === "client" && milestone.status === "Submitted" && now < deadline,
     resolve: role === "arbiter" && milestone.status === "Disputed",
-    refund:
-      role === "freelancer" && (milestone.status === "Funded" || milestone.status === "Submitted"),
+    refund: role === "freelancer" && (milestone.status === "Funded" || milestone.status === "Submitted"),
   };
 
   const freelancerPart = Math.floor((milestone.amount * splitPct) / 100);
-  const evidenceIsLink = /^https?:\/\//i.test(evidence.trim());
+  const evidenceIsLink = /^https?:\/\/\S+$/i.test(evidence.trim());
+  const dateLocale = lang === "es" ? "es-BO" : "en-US";
 
   return (
-    <div
-      className={`rounded-lg border border-l-4 border-slate-200 bg-white p-4 shadow-sm ${TONE_BORDER[step.tone]}`}
-    >
+    <div className={`rounded-xl border border-l-4 border-slate-200 bg-white p-4 shadow-sm ${TONE_BORDER[step.tone]}`}>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-            Milestone {index + 1}
-          </p>
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{t("ms.milestone", { n: index + 1 })}</p>
           <p className="font-semibold text-slate-900">{milestone.title}</p>
         </div>
         <div className="text-right">
           <p className="text-lg font-semibold text-slate-900">
-            {formatAmount(milestone.amount)} <span className="text-sm font-normal text-slate-500">USDC</span>
+            {amount} <span className="text-sm font-normal text-slate-500">USDC</span>
           </p>
           <span
             className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${TONE_BADGE[step.tone]}`}
           >
             {step.tone === "safe" && <span aria-hidden>🔒</span>}
-            {step.label}
+            {t(step.label)}
           </span>
         </div>
       </div>
@@ -92,58 +95,53 @@ export default function MilestoneRow({
       <p className={`mt-2 text-sm ${step.needsAction ? "font-medium text-slate-900" : "text-slate-600"}`}>
         {step.needsAction && (
           <span className="mr-1.5 rounded bg-brand-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-            Your turn
+            {t("ms.yourTurn")}
           </span>
         )}
-        {step.text}
+        {t(step.text)}
       </p>
 
-      <p className="mt-1 text-xs text-slate-500">
-        Platform fee {formatAmount(fee)} USDC · freelancer receives {formatAmount(net)} USDC
-      </p>
+      <p className="mt-1 text-xs text-slate-500">{t("ms.fee", { fee: formatAmount(fee), net: formatAmount(net) })}</p>
 
       {milestone.status === "Submitted" && (
         <p className="mt-1 text-xs text-amber-700">
           {now < deadline ? (
             <>
-              Review window closes in <strong>{formatCountdown(deadline, now)}</strong> ({formatDate(deadline)})
+              {t("ms.closesIn")} <strong>{formatCountdown(deadline, now)}</strong> ({formatDate(deadline, dateLocale)})
             </>
           ) : (
-            <>Review window closed on {formatDate(deadline)}</>
+            t("ms.closedOn", { date: formatDate(deadline, dateLocale) })
           )}
         </p>
       )}
 
       {milestone.evidence && (
         <div className="mt-2 text-xs">
-          <span className="text-slate-500">Delivered work: </span>
-          <a
-            href={milestone.evidence}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="break-all text-brand-600 underline"
-          >
-            {milestone.evidence}
-          </a>
+          <span className="text-slate-500">{t("ms.delivered")} </span>
+          {/^https?:\/\//i.test(milestone.evidence) ? (
+            <a href={milestone.evidence} target="_blank" rel="noreferrer noopener nofollow" className="break-all text-brand-700 underline">
+              {milestone.evidence}
+            </a>
+          ) : (
+            <span className="break-all text-slate-700">{milestone.evidence}</span>
+          )}
         </div>
       )}
       {milestone.disputeReason && (
         <div className="mt-2 rounded-md bg-red-50 px-2 py-1 text-xs text-red-700">
-          Dispute reason: {milestone.disputeReason}
+          {t("ms.disputeReason")} {milestone.disputeReason}
         </div>
       )}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {can.fund && (
           <ActionButton
+            disabled={busy}
             onClick={() =>
-              run(
-                () => getEscrow().fundMilestone(agreement.id, index),
-                `Lock ${formatAmount(milestone.amount)} USDC in escrow for "${milestone.title}"?`,
-              )
+              run(() => getEscrow().fundMilestone(agreement.id, index), t("ms.lockConfirm", { amount, title: milestone.title }))
             }
           >
-            Lock {formatAmount(milestone.amount)} USDC
+            {t("ms.lock", { amount })}
           </ActionButton>
         )}
 
@@ -152,37 +150,36 @@ export default function MilestoneRow({
             <input
               value={evidence}
               onChange={(e) => setEvidence(e.target.value)}
-              placeholder="https://… link to your work (Drive, GitHub…)"
-              aria-label="Link to your work"
-              className="min-w-0 flex-1 rounded-md border border-slate-300 px-2 py-1.5 text-sm sm:max-w-sm"
+              placeholder={t("ms.workPh")}
+              aria-label={t("ms.workPh")}
+              className="min-w-0 flex-1 rounded-full border border-slate-300 px-3 py-1.5 text-sm sm:max-w-sm"
             />
             <ActionButton
               onClick={() => run(() => getEscrow().submitMilestone(agreement.id, index, evidence.trim()))}
-              disabled={!evidenceIsLink}
+              disabled={!evidenceIsLink || busy}
             >
-              Submit work
+              {t("ms.submit")}
             </ActionButton>
           </>
         )}
 
         {can.approve && (
           <ActionButton
+            disabled={busy}
             onClick={() =>
               run(
                 () => getEscrow().approveMilestone(agreement.id, index),
-                `Approve and release ${formatAmount(milestone.amount)} USDC? The freelancer receives ${formatAmount(net)} USDC. This cannot be undone.`,
+                t("ms.approveConfirm", { amount, net: formatAmount(net) }),
               )
             }
           >
-            Approve &amp; release
+            {t("ms.approve")}
           </ActionButton>
         )}
 
         {can.claim && (
-          <ActionButton
-            onClick={() => run(() => getEscrow().claimMilestone(agreement.id, index))}
-          >
-            Claim {formatAmount(net)} USDC
+          <ActionButton disabled={busy} onClick={() => run(() => getEscrow().claimMilestone(agreement.id, index))}>
+            {t("ms.claim", { net: formatAmount(net) })}
           </ActionButton>
         )}
 
@@ -191,52 +188,49 @@ export default function MilestoneRow({
             <input
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="What is wrong with the work?"
-              aria-label="Reason for dispute"
-              className="min-w-0 flex-1 rounded-md border border-red-200 px-2 py-1.5 text-sm sm:max-w-xs"
+              placeholder={t("ms.reasonPh")}
+              aria-label={t("ms.reasonPh")}
+              className="min-w-0 flex-1 rounded-full border border-red-200 px-3 py-1.5 text-sm sm:max-w-xs"
             />
             <ActionButton
               danger
               onClick={() =>
-                run(
-                  () => getEscrow().disputeMilestone(agreement.id, index, reason.trim()),
-                  "Open a dispute? The money stays locked until the arbiter decides how to split it.",
-                )
+                run(() => getEscrow().disputeMilestone(agreement.id, index, reason.trim()), t("ms.disputeConfirm"))
               }
-              disabled={!reason.trim()}
+              disabled={!reason.trim() || busy}
             >
-              Open dispute
+              {t("ms.dispute")}
             </ActionButton>
           </>
         )}
 
         {can.resolve && (
-          <div className="w-full space-y-2 rounded-md bg-slate-50 p-3">
+          <div className="w-full space-y-2 rounded-lg bg-slate-50 p-3">
             <label className="flex items-center gap-3 text-xs text-slate-600">
-              <span>Freelancer share</span>
+              <span>{t("ms.share")}</span>
               <input
                 type="range"
                 min={0}
                 max={100}
                 value={splitPct}
                 onChange={(e) => setSplitPct(Number(e.target.value))}
-                className="flex-1"
+                className="flex-1 accent-brand-600"
               />
               <span className="w-10 text-right font-semibold text-slate-800">{splitPct}%</span>
             </label>
             <p className="text-xs text-slate-500">
-              Freelancer {formatAmount(freelancerPart)} USDC (before fee) · Client{" "}
-              {formatAmount(milestone.amount - freelancerPart)} USDC
+              {t("ms.splitLine", { f: formatAmount(freelancerPart), c: formatAmount(milestone.amount - freelancerPart) })}
             </p>
             <ActionButton
+              disabled={busy}
               onClick={() =>
                 run(
                   () => getEscrow().resolveDispute(agreement.id, index, splitPct * 100),
-                  `Resolve: ${splitPct}% to the freelancer and ${100 - splitPct}% to the client? This cannot be undone.`,
+                  t("ms.resolveConfirm", { f: splitPct, c: 100 - splitPct }),
                 )
               }
             >
-              Resolve dispute
+              {t("ms.resolve")}
             </ActionButton>
           </div>
         )}
@@ -244,18 +238,14 @@ export default function MilestoneRow({
         {can.refund && (
           <ActionButton
             subtle
-            onClick={() =>
-              run(
-                () => getEscrow().refundMilestone(agreement.id, index),
-                `Refund the full ${formatAmount(milestone.amount)} USDC to the client? This cannot be undone.`,
-              )
-            }
+            disabled={busy}
+            onClick={() => run(() => getEscrow().refundMilestone(agreement.id, index), t("ms.refundConfirm", { amount }))}
           >
-            Refund client
+            {t("ms.refund")}
           </ActionButton>
         )}
 
-        <TxStatus phase={phase} error={err} />
+        <TxStatus phase={phase} error={err} txHash={txHash} />
       </div>
     </div>
   );

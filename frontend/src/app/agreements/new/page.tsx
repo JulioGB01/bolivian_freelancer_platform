@@ -5,27 +5,25 @@ import { useRouter } from "next/navigation";
 import { getEscrow, notifyEscrowChanged } from "@/lib/escrow";
 import { errorMessage } from "@/lib/errors";
 import { BPS_DENOMINATOR, formatAmount, parseAmount } from "@/lib/format";
-import { DEMO_MODE } from "@/lib/config";
+import { useT, type MsgKey } from "@/lib/i18n";
+import { useMode } from "@/lib/mode";
 import { useWallet } from "@/lib/useWallet";
 
-// Review window choices. The default value is decision D-05 (still open); one hour is the
-// value the demo has used so far. The one-minute option exists to test claim/dispute quickly.
-const REVIEW_WINDOWS: { secs: number; label: string; demoOnly?: boolean }[] = [
-  { secs: 60, label: "1 minute (demo testing)", demoOnly: true },
-  { secs: 3600, label: "1 hour" },
-  { secs: 86400, label: "1 day" },
-  { secs: 3 * 86400, label: "3 days" },
-  { secs: 7 * 86400, label: "7 days" },
-];
+// Review window choices. Default 1 day; 1 minute is offered for testing claim / dispute quickly.
+const REVIEW_WINDOWS: number[] = [60, 3600, 86400, 3 * 86400, 7 * 86400];
+const DEFAULT_WINDOW = 86400;
 const MAX_MILESTONES = 10;
 const AMOUNT_RE = /^\d+(\.\d{1,7})?$/;
+const STELLAR_ACCOUNT_RE = /^G[A-Z2-7]{55}$/;
 
 export default function NewAgreement() {
+  const { t } = useT();
+  const mode = useMode();
   const { wallet } = useWallet();
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [client, setClient] = useState("");
-  const [reviewWindowSecs, setReviewWindowSecs] = useState(3600);
+  const [reviewWindowSecs, setReviewWindowSecs] = useState(DEFAULT_WINDOW);
   const [milestones, setMilestones] = useState([{ title: "", amount: "" }]);
   const [feeBps, setFeeBps] = useState<number | null>(null);
   const [error, setError] = useState("");
@@ -33,14 +31,15 @@ export default function NewAgreement() {
   const [touched, setTouched] = useState(false);
 
   useEffect(() => {
-    getEscrow().getConfig().then((c) => setFeeBps(c.feeBps));
+    getEscrow()
+      .getConfig()
+      .then((c) => setFeeBps(c.feeBps))
+      .catch(() => setFeeBps(null));
   }, []);
 
   if (!wallet) {
     return (
-      <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-slate-600">
-        Connect your wallet (top right) to create an agreement.
-      </div>
+      <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-600">{t("new.connect")}</div>
     );
   }
 
@@ -49,19 +48,23 @@ export default function NewAgreement() {
   }
 
   const amountValid = (s: string) => AMOUNT_RE.test(s.trim()) && parseAmount(s) > 0;
-  const problems: string[] = [];
-  if (!title.trim()) problems.push("Give the agreement a title.");
-  if (!client.trim()) problems.push("Enter your client's wallet address.");
-  else if (client.trim() === wallet.address) problems.push("The client must be a different address from yours.");
-  if (milestones.some((m) => !m.title.trim())) problems.push("Give every milestone a title.");
-  if (milestones.some((m) => !amountValid(m.amount)))
-    problems.push("Every milestone needs an amount greater than 0 (for example 150 or 150.50).");
+  const clientAddr = client.trim();
+  const problems: MsgKey[] = [];
+  if (!title.trim()) problems.push("new.errTitle");
+  if (!clientAddr) problems.push("new.errClient");
+  else if (mode === "testnet" && !STELLAR_ACCOUNT_RE.test(clientAddr)) problems.push("new.errClientG");
+  else if (clientAddr === wallet.address) problems.push("new.errSame");
+  if (milestones.some((m) => !m.title.trim())) problems.push("new.errMsTitle");
+  if (milestones.some((m) => !amountValid(m.amount))) problems.push("new.errAmount");
 
   const total = milestones.reduce((sum, m) => sum + (amountValid(m.amount) ? parseAmount(m.amount) : 0), 0);
-  const fee = feeBps === null ? 0 : milestones.reduce((sum, m) => {
-    const a = amountValid(m.amount) ? parseAmount(m.amount) : 0;
-    return sum + Math.floor((a * feeBps) / BPS_DENOMINATOR);
-  }, 0);
+  const fee =
+    feeBps === null
+      ? 0
+      : milestones.reduce((sum, m) => {
+          const a = amountValid(m.amount) ? parseAmount(m.amount) : 0;
+          return sum + Math.floor((a * feeBps) / BPS_DENOMINATOR);
+        }, 0);
 
   async function submit() {
     setTouched(true);
@@ -71,7 +74,7 @@ export default function NewAgreement() {
     try {
       const id = await getEscrow().createAgreement({
         freelancer: wallet!.address,
-        client: client.trim(),
+        client: clientAddr,
         title: title.trim(),
         milestones: milestones.map((m) => ({ title: m.title.trim(), amount: parseAmount(m.amount) })),
         reviewWindowSecs,
@@ -79,57 +82,37 @@ export default function NewAgreement() {
       notifyEscrowChanged();
       router.push(`/agreements/${id}`);
     } catch (e) {
-      setError(errorMessage(e));
+      setError(errorMessage(e, t));
       setBusy(false);
     }
   }
 
-  const windows = REVIEW_WINDOWS.filter((w) => DEMO_MODE || !w.demoOnly);
-
   return (
-    <div className="space-y-4">
+    <div className="mx-auto max-w-3xl space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold">New agreement</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Split the job into milestones. Your client locks the money for each milestone before you
-          start it, and you can check it at any time.
-        </p>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("new.title")}</h1>
+        <p className="mt-1 text-sm text-slate-600">{t("new.lead")}</p>
       </div>
-      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="grid gap-5">
-          <Field label="What is the job?">
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Website redesign"
-              className={inputCls}
-            />
+          <Field label={t("new.job")}>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("new.jobPh")} maxLength={120} className={inputCls} />
           </Field>
-          <Field
-            label="Client's wallet address"
-            hint={DEMO_MODE ? "Demo: use demo-client." : "The Stellar address (G…) your client will pay from."}
-          >
+          <Field label={t("new.client")} hint={mode === "demo" ? t("new.clientHintDemo") : t("new.clientHint")}>
             <input
               value={client}
               onChange={(e) => setClient(e.target.value)}
-              placeholder={DEMO_MODE ? "demo-client" : "G…"}
+              placeholder={mode === "demo" ? "demo-client" : "G…"}
               className={`${inputCls} font-mono`}
               autoComplete="off"
               spellCheck={false}
             />
           </Field>
-          <Field
-            label="Review window"
-            hint="After you submit a milestone, the client has this long to approve or dispute. If they don't answer, you can claim the payment."
-          >
-            <select
-              value={reviewWindowSecs}
-              onChange={(e) => setReviewWindowSecs(Number(e.target.value))}
-              className={inputCls}
-            >
-              {windows.map((w) => (
-                <option key={w.secs} value={w.secs}>
-                  {w.label}
+          <Field label={t("new.window")} hint={t("new.windowHint")}>
+            <select value={reviewWindowSecs} onChange={(e) => setReviewWindowSecs(Number(e.target.value))} className={inputCls}>
+              {REVIEW_WINDOWS.map((s) => (
+                <option key={s} value={s}>
+                  {t(`new.w${s}` as MsgKey)}
                 </option>
               ))}
             </select>
@@ -137,7 +120,7 @@ export default function NewAgreement() {
 
           <fieldset className="space-y-2">
             <legend className="mb-1 text-sm font-medium text-slate-700">
-              Milestones <span className="font-normal text-slate-400">(1 to {MAX_MILESTONES})</span>
+              {t("new.milestones")} <span className="font-normal text-slate-400">{t("new.range")}</span>
             </legend>
             {milestones.map((m, i) => {
               const badAmount = touched && !amountValid(m.amount);
@@ -146,8 +129,9 @@ export default function NewAgreement() {
                   <input
                     value={m.title}
                     onChange={(e) => updateMilestone(i, { title: e.target.value })}
-                    placeholder={`Milestone ${i + 1}, e.g. First draft`}
-                    aria-label={`Milestone ${i + 1} title`}
+                    placeholder={t("new.msPh", { n: i + 1 })}
+                    aria-label={t("new.msPh", { n: i + 1 })}
+                    maxLength={120}
                     className={`${inputCls} flex-1 ${touched && !m.title.trim() ? "border-red-400" : ""}`}
                   />
                   <div className="flex gap-2">
@@ -157,19 +141,17 @@ export default function NewAgreement() {
                         onChange={(e) => updateMilestone(i, { amount: e.target.value.replace(",", ".") })}
                         placeholder="0.00"
                         inputMode="decimal"
-                        aria-label={`Milestone ${i + 1} amount in USDC`}
+                        aria-label={`${t("new.milestones")} ${i + 1} USDC`}
                         className={`${inputCls} w-full pr-14 text-right ${badAmount ? "border-red-400" : ""}`}
                       />
-                      <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">
-                        USDC
-                      </span>
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">USDC</span>
                     </div>
                     {milestones.length > 1 && (
                       <button
                         type="button"
                         onClick={() => setMilestones((prev) => prev.filter((_, idx) => idx !== i))}
-                        aria-label={`Remove milestone ${i + 1}`}
-                        className="rounded-md border border-slate-300 px-3 text-slate-500 hover:bg-slate-50"
+                        aria-label={`× ${i + 1}`}
+                        className="rounded-lg border border-slate-300 px-3 text-slate-500 hover:bg-slate-50"
                       >
                         ×
                       </button>
@@ -182,40 +164,44 @@ export default function NewAgreement() {
               <button
                 type="button"
                 onClick={() => setMilestones((prev) => [...prev, { title: "", amount: "" }])}
-                className="text-sm font-medium text-brand-600 hover:text-brand-500"
+                className="text-sm font-medium text-brand-700 hover:text-brand-600"
               >
-                + Add milestone
+                {t("new.add")}
               </button>
             )}
           </fieldset>
 
-          <div className="rounded-lg bg-slate-50 p-4 text-sm">
-            <Row label="Total the client locks" value={`${formatAmount(total)} USDC`} />
+          <div className="rounded-xl bg-slate-50 p-4 text-sm">
+            <Row label={t("new.total")} value={`${formatAmount(total)} USDC`} />
             <Row
-              label={`Platform fee${feeBps === null ? "" : ` (${(feeBps / 100).toFixed(2)}%, fixed for this agreement)`}`}
+              label={t("new.fee", { pct: feeBps === null ? "…" : (feeBps / 100).toFixed(2) })}
               value={`− ${formatAmount(fee)} USDC`}
             />
             <div className="my-2 border-t border-slate-200" />
-            <Row label="You receive if every milestone is approved" value={`${formatAmount(total - fee)} USDC`} strong />
+            <Row label={t("new.receive")} value={`${formatAmount(total - fee)} USDC`} strong />
           </div>
 
           {touched && problems.length > 0 && (
-            <ul className="list-disc space-y-1 rounded-md bg-red-50 py-2 pl-8 pr-3 text-sm text-red-700" role="alert">
+            <ul className="list-disc space-y-1 rounded-lg bg-red-50 py-2 pl-8 pr-3 text-sm text-red-700" role="alert">
               {problems.map((p) => (
-                <li key={p}>{p}</li>
+                <li key={p}>{t(p)}</li>
               ))}
             </ul>
           )}
-          {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
+          {error && (
+            <p className="text-sm text-red-600" role="alert">
+              {error}
+            </p>
+          )}
 
           <div className="flex justify-end">
             <button
               type="button"
               onClick={submit}
               disabled={busy}
-              className="w-full rounded-full bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-40 sm:w-auto"
+              className="w-full rounded-full bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-40 sm:w-auto"
             >
-              {busy ? "Creating…" : "Create agreement"}
+              {busy ? t("new.creating") : t("new.create")}
             </button>
           </div>
         </div>
@@ -225,7 +211,7 @@ export default function NewAgreement() {
 }
 
 const inputCls =
-  "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100";
+  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-100";
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (

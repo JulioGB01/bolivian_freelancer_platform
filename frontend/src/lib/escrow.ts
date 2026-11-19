@@ -1,13 +1,13 @@
 // Escrow client. In demo mode this is a faithful in-browser simulation of the
 // Soroban contract (same state machine and money math as
-// contracts/escrow/src/lib.rs). In real mode the same `EscrowApi` interface is
-// implemented by the generated TypeScript bindings (created after the contract
-// is deployed, task T3.3).
+// contracts/escrow/src/lib.rs). In testnet mode the same `EscrowApi` interface is
+// implemented by RealEscrow (lib/escrowReal.ts) over the generated contract bindings.
 //
 // Amounts are integers in the token's smallest unit (7 decimals). Money math is
 // integer-only, rounding down, multiplication before division, exactly like the
 // contract (docs/03_CONTRACT_SPEC.md section 4).
-import { DEMO_MODE } from "./config";
+import { getMode } from "./mode";
+import { RealEscrow } from "./escrowReal";
 import { BPS_DENOMINATOR } from "./format";
 import type { Agreement, Config, Milestone, MilestoneStatus } from "./types";
 
@@ -39,6 +39,8 @@ export interface EscrowApi {
   disputeMilestone(id: number, index: number, reason: string): Promise<void>;
   resolveDispute(id: number, index: number, freelancerBps: number): Promise<void>;
   refundMilestone(id: number, index: number): Promise<void>;
+  /** Hash of the last submitted transaction (testnet mode only). */
+  lastTxHash?: string | null;
 }
 
 export class EscrowError extends Error {
@@ -54,7 +56,7 @@ export class EscrowError extends Error {
 
 const STATE_KEY = "bfe.mock.state";
 const MAX_MILESTONES = 10;
-const DEMO_FEE_BPS = 100; // 1%. Decision D-03 (fee) is still Open; this is a demo value.
+const DEMO_FEE_BPS = 500; // 5%, decision D-03 (Confirmed).
 const DEMO_INITIAL_BALANCE = 1_000_000_000; // 100 USDC, 7 decimals.
 
 interface MockState {
@@ -95,7 +97,8 @@ function loadState(): MockState {
   if (!raw) return defaultState();
   try {
     const parsed = JSON.parse(raw) as MockState;
-    if (!parsed.config || !parsed.balances || !parsed.agreements) {
+    // Reset demo data saved with an older fee so the demo matches decision D-03.
+    if (!parsed.config || !parsed.balances || !parsed.agreements || parsed.config.feeBps !== DEMO_FEE_BPS) {
       return defaultState();
     }
     return parsed;
@@ -283,7 +286,7 @@ let instance: EscrowApi | null = null;
 
 export function getEscrow(): EscrowApi {
   if (!instance) {
-    instance = DEMO_MODE ? new MockEscrow() : new MockEscrow(); // real bindings slot in here (T3.3)
+    instance = getMode() === "testnet" ? new RealEscrow() : new MockEscrow();
   }
   return instance;
 }

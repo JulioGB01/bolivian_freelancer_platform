@@ -11,7 +11,8 @@ using the demo-mode frontend (no wallet, no testnet).
    npm install
    npm run dev
    ```
-2. Open http://localhost:3000. Confirm the **Demo mode** banner is visible.
+2. Open http://localhost:3000. Confirm the **Demo** banner is visible. The UI starts in Spanish;
+   click **EN** in the header so the labels match this script.
 
 ## Walkthrough
 
@@ -22,7 +23,7 @@ using the demo-mode frontend (no wallet, no testnet).
 3. **Create an agreement** — *New agreement*. Fill:
    - Title: `Logo design`
    - Client address: `demo-client`
-   - Review window: **1 minute (demo testing)**, so the claim/dispute flow can be tested quickly
+   - Review window: **1 minute (testing)**, so the claim/dispute flow can be tested quickly
    - Milestone 1: `Logo design v1`, amount `25`
    - Add a second milestone: `Logo design v2`, amount `25`
    - Check the fee summary (total, platform fee, what you receive), then click
@@ -36,9 +37,9 @@ using the demo-mode frontend (no wallet, no testnet).
    link (e.g. `https://drive.google.com/example`) into the evidence field and
    **Submit work**. The milestone shows a live review-window countdown.
 7. **Approve as Client** — switch to **Client**. **Approve & release**. The freelancer
-   receives 25 USDC minus the 1% fee (24.75), and the fee recipient gets 0.25.
+   receives 25 USDC minus the 5% fee (23.75), and the fee recipient gets 1.25.
 8. **Claim after silence** — switch to **Freelancer**, fund milestone 2 as **Client**,
-   submit it as **Freelancer**, wait for the 1-minute window. The **Claim 24.75 USDC**
+   submit it as **Freelancer**, wait for the 1-minute window. The **Claim 23.75 USDC**
    button appears by itself (no page refresh); click it.
 9. **Dispute and resolve** — create a third milestone, fund + submit it, and as
    **Client** click **Open dispute** (with a reason) before the window ends. Switch to
@@ -50,6 +51,6 @@ using the demo-mode frontend (no wallet, no testnet).
 ## Checks
 
 - [ ] Every milestone shows a status badge and only the role-appropriate action buttons.
-- [ ] Balances move by the expected amounts (fee is 1% in the demo).
+- [ ] Balances move by the expected amounts (fee is 5%, decision D-03).
 - [ ] The "Locked in escrow" total matches the sum of funded/submitted/disputed milestones.
 - [ ] Errors (e.g. funding twice, claiming early, disputing late) show a plain message.

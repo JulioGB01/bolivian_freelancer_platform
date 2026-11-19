@@ -31,9 +31,9 @@ export function shortAddress(address: string): string {
 }
 
 /** Show a unix timestamp (seconds) as a short local date/time. */
-export function formatDate(secs: number): string {
+export function formatDate(secs: number, locale?: string): string {
   if (!secs) return "—";
-  return new Date(secs * 1000).toLocaleString();
+  return new Date(secs * 1000).toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" });
 }
 
 /** Human countdown like "2h 14m" or "expired". */
@@ -46,18 +46,3 @@ export function formatCountdown(deadlineSecs: number, nowSecs: number): string {
   return `${m}m ${diff % 60}s`;
 }
 
-/** Human duration like "1 hour", "3 days" or "60 seconds". */
-export function formatDuration(secs: number): string {
-  const units: [number, string][] = [
-    [86400, "day"],
-    [3600, "hour"],
-    [60, "minute"],
-  ];
-  for (const [size, name] of units) {
-    if (secs >= size && secs % size === 0) {
-      const n = secs / size;
-      return `${n} ${name}${n === 1 ? "" : "s"}`;
-    }
-  }
-  return `${secs} seconds`;
-}
