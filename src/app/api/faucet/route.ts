@@ -8,7 +8,7 @@ import { HORIZON_URL, NETWORK_PASSPHRASE, USDC_CODE, USDC_ISSUER } from "@/lib/c
 const AMOUNT = "1000";
 
 export async function POST(req: Request) {
-  const secret = process.env.FAUCET_SECRET;
+  const secret = process.env.FAUCET_SECRET?.trim();
   if (!secret) return Response.json({ error: "FaucetNotConfigured" }, { status: 503 });
   if (NETWORK_PASSPHRASE !== "Test SDF Network ; September 2015") {
     return Response.json({ error: "TestnetOnly" }, { status: 403 });
