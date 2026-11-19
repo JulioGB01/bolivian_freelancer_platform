@@ -16,7 +16,7 @@ import ReviewDialog, { type ReviewRequest } from "./ReviewDialog";
 export default function Invitation({ agreement, onChanged }: { agreement: Agreement; onChanged: () => void }) {
   const { t } = useT();
   const mode = useMode();
-  const { wallet, connectReal, connectAs } = useWallet();
+  const { wallet, connectReal, connectPasskey, connectAs } = useWallet();
   const [ready, setReady] = useState(false);
   const [review, setReview] = useState<ReviewRequest | null>(null);
 
@@ -75,9 +75,14 @@ export default function Invitation({ agreement, onChanged }: { agreement: Agreem
         <ol className="space-y-3 self-center">
           <Step n={1} done={step1} active={!step1} title={t("inv.step1")}>
             {!wallet && mode === "testnet" && (
-              <button type="button" onClick={() => void connectReal().catch(() => undefined)} className="mt-3 bg-lime px-4 py-2 text-xs font-semibold text-ink">
-                {t("wallet.connect")}
-              </button>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button type="button" onClick={() => void connectPasskey().catch(() => undefined)} className="bg-lime px-4 py-2 text-xs font-semibold text-ink">
+                  Entrar con Passkey (sin wallet)
+                </button>
+                <button type="button" onClick={() => void connectReal().catch(() => undefined)} className="border border-white/25 px-3 py-2 text-xs font-medium text-white hover:border-lime">
+                  {t("wallet.connect")}
+                </button>
+              </div>
             )}
             {mode === "demo" && !isClient && (
               <button type="button" onClick={() => connectAs(DEMO_IDENTITIES[1])} className="mt-3 bg-lime px-4 py-2 text-xs font-semibold text-ink">

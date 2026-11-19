@@ -86,6 +86,36 @@ export default function MilestoneRow({
   const canSubmitWork = evidenceIsLink || attachedFile !== null;
   const parsedOnChain = milestone.evidence ? parseOnChainEvidence(milestone.evidence) : null;
   const dateLocale = lang === "es" ? "es-BO" : "en-US";
+  const stageIdx =
+    milestone.status === "Pending"
+      ? 0
+      : milestone.status === "Funded"
+        ? 1
+        : milestone.status === "Submitted"
+          ? 2
+          : 3;
+  const stageLabels =
+    lang === "es"
+      ? [
+          "1. Pendiente",
+          "2. Fondeado",
+          "3. Entregado",
+          milestone.status === "Disputed"
+            ? "4. Disputa"
+            : milestone.status === "Refunded"
+              ? "4. Reembolsado"
+              : "4. Liberado",
+        ]
+      : [
+          "1. Pending",
+          "2. Funded",
+          "3. Submitted",
+          milestone.status === "Disputed"
+            ? "4. Disputed"
+            : milestone.status === "Refunded"
+              ? "4. Refunded"
+              : "4. Released",
+        ];
   const payoutRows = [
     { label: t("rv.amount"), value: usd(milestone.amount) },
     { label: t("rv.fee", { pct }), value: `− ${usd(fee)}` },
@@ -110,7 +140,30 @@ export default function MilestoneRow({
         </div>
       </div>
 
-      <p className={`mt-2 text-sm ${step.needsAction ? "font-medium" : "text-ink/60"}`}>
+      <div className="mt-3 grid grid-cols-4 gap-1.5" aria-label="Progreso del hito">
+        {stageLabels.map((lbl, sIdx) => {
+          const isCurrent = sIdx === stageIdx;
+          const isDone = sIdx < stageIdx || (sIdx === 3 && stageIdx === 3 && milestone.status !== "Disputed");
+          const barCls =
+            milestone.status === "Disputed" && sIdx === 3
+              ? "bg-bo-red"
+              : isCurrent
+                ? "bg-brand-600"
+                : isDone
+                  ? "bg-ink"
+                  : "bg-line";
+          return (
+            <div key={lbl} className="space-y-1">
+              <div className={`h-1.5 w-full ${barCls}`} />
+              <p className={`truncate font-mono text-[10px] ${isCurrent ? "font-semibold text-ink" : "text-ink/45"}`}>
+                {lbl}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+
+      <p className={`mt-3 text-sm ${step.needsAction ? "font-medium" : "text-ink/60"}`}>
         {step.needsAction && (
           <span className="mr-1.5 bg-bo-yellow px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ink">
             {t("ms.yourTurn")}
