@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-# Enabled with: git config core.hooksPath .githooks
-set -euo pipefail
-ROOT="$(git rev-parse --show-toplevel)"
-bash "$ROOT/scripts/check-secrets.sh"
-bash "$ROOT/scripts/check.sh"

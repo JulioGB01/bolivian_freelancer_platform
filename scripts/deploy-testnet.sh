@@ -2,8 +2,7 @@
 # Deploys bfe-escrow to Stellar TESTNET and writes deployments/testnet.json.
 # Every command below was checked with `stellar <command> --help` (Stellar CLI 30.0.1).
 #
-# Decisions used: D-03 fee 5% (500 bps), D-04 own test asset USDC issued by bfe-admin,
-# D-13 arbiter = bfe-arbiter. Fee recipient = bfe-treasury (NOT bfe-admin: the admin issues the
+# Settings: fee 5% (500 bps); test asset USDC issued by bfe-admin; arbiter = bfe-arbiter. Fee recipient = bfe-treasury (NOT bfe-admin: the admin issues the
 # test USDC, and tokens sent back to a classic asset issuer are burned).
 #
 # Requires: identities bfe-admin, bfe-arbiter, bfe-treasury, bfe-freelancer, bfe-client in the Stellar CLI

@@ -9,13 +9,9 @@ cargo fmt --all -- --check
 cargo clippy --all-targets -- -D warnings
 cargo test
 
-if [ -f "$ROOT/frontend/package.json" ]; then
-  echo "== Frontend =="
-  cd "$ROOT/frontend"
-  npm run lint
-  npm run build
-else
-  echo "== Frontend == skipped (frontend/package.json not created yet, task T3.1)"
-fi
+echo "== Web app =="
+cd "$ROOT"
+npm run lint
+npm run build
 
 echo "All checks passed."

@@ -1,13 +1,16 @@
-# Rust
-contracts/target/
-**/target/
-
-# Node
+# Dependencies and builds
 node_modules/
-frontend/.next/
-frontend/out/
+.next/
+out/
+build/
+*.tsbuildinfo
+next-env.d.ts
+.vercel
 
-# Env and secrets
+# Rust
+target/
+
+# Env and secrets (only the example file is committed)
 .env
 .env.*
 !.env.example
@@ -17,6 +20,9 @@ frontend/out/
 # Stellar CLI local config (may contain identities)
 .stellar/
 .soroban/
+
+# Logs
+npm-debug.log*
 
 # OS / editors
 .DS_Store
