@@ -45,10 +45,10 @@ export default function Home() {
               </h1>
               <p className="mt-6 max-w-xl text-base leading-relaxed text-white/65 sm:text-lg">{t("home.lead")}</p>
               <div className="mt-9 flex flex-wrap gap-3">
-                <ArrowLink href="/agreements/new" variant="lime">
+                <ArrowLink href="/app/nuevo" variant="lime">
                   {t("home.cta")}
                 </ArrowLink>
-                <ArrowLink href="/dashboard" variant="outline">
+                <ArrowLink href="/app" variant="outline">
                   {t("home.cta2")}
                 </ArrowLink>
               </div>
@@ -202,7 +202,7 @@ export default function Home() {
           </h2>
           <p className="mt-4 max-w-xl text-white/75">{t("home.ctaBandB")}</p>
           <div className="mt-8">
-            <ArrowLink href="/agreements/new" variant="light">
+            <ArrowLink href="/app/nuevo" variant="light">
               {t("home.cta")}
             </ArrowLink>
           </div>

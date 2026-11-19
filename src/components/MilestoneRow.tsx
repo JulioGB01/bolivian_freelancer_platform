@@ -1,15 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { BPS_DENOMINATOR, formatAmount, formatCountdown, formatDate } from "@/lib/format";
+import { BPS_DENOMINATOR, formatAmount, formatCountdown, formatDate, shortAddress } from "@/lib/format";
 import { getEscrow, notifyEscrowChanged } from "@/lib/escrow";
-import { errorMessage } from "@/lib/errors";
 import { useT } from "@/lib/i18n";
 import { nextStep, reviewDeadline, TONE_BADGE, TONE_BORDER } from "@/lib/status";
 import { useNow } from "@/lib/useNow";
 import type { Agreement, Milestone } from "@/lib/types";
 import type { Role } from "@/lib/wallet";
-import TxStatus, { type TxPhase } from "./TxStatus";
+import ReviewDialog, { type ReviewRequest } from "./ReviewDialog";
 
 export default function MilestoneRow({
   agreement,
@@ -17,17 +16,18 @@ export default function MilestoneRow({
   index,
   role,
   onChanged,
+  readOnly,
 }: {
   agreement: Agreement;
   milestone: Milestone;
   index: number;
   role: Role;
   onChanged: () => void;
+  /** Public verify page: show state only, no actions. */
+  readOnly?: boolean;
 }) {
   const { t, lang } = useT();
-  const [phase, setPhase] = useState<TxPhase>("idle");
-  const [err, setErr] = useState<string>();
-  const [txHash, setTxHash] = useState<string | null>(null);
+  const [review, setReview] = useState<ReviewRequest | null>(null);
   const [evidence, setEvidence] = useState("");
   const [reason, setReason] = useState("");
   const [splitPct, setSplitPct] = useState(50);
@@ -35,64 +35,62 @@ export default function MilestoneRow({
   // Ticks every second, so the countdown and the Claim / Dispute buttons update live.
   const now = useNow();
   const deadline = reviewDeadline(agreement, milestone);
+  const pct = (agreement.feeBps / 100).toFixed(2);
   const fee = Math.floor((milestone.amount * agreement.feeBps) / BPS_DENOMINATOR);
   const net = milestone.amount - fee;
-  const step = nextStep(agreement, milestone, role, now);
+  const step = nextStep(agreement, milestone, readOnly ? "viewer" : role, now);
   const amount = formatAmount(milestone.amount);
+  const usd = (n: number) => `${formatAmount(n)} USDC`;
+  const F = shortAddress(agreement.freelancer);
+  const C = shortAddress(agreement.client);
 
-  async function run(fn: () => Promise<void>, confirmText?: string) {
-    if (confirmText && !window.confirm(confirmText)) return;
-    setPhase("pending");
-    setErr(undefined);
-    setTxHash(null);
-    try {
-      await fn();
-      setTxHash(getEscrow().lastTxHash ?? null);
-      setPhase("success");
-      onChanged();
-      notifyEscrowChanged();
-    } catch (e) {
-      setPhase("error");
-      setErr(errorMessage(e, t));
-    }
-  }
-
-  const busy = phase === "pending";
-  const can = {
-    fund: role === "client" && milestone.status === "Pending",
-    submit: role === "freelancer" && milestone.status === "Funded",
-    approve: role === "client" && milestone.status === "Submitted",
-    claim: role === "freelancer" && milestone.status === "Submitted" && now >= deadline,
-    dispute: role === "client" && milestone.status === "Submitted" && now < deadline,
-    resolve: role === "arbiter" && milestone.status === "Disputed",
-    refund: role === "freelancer" && (milestone.status === "Funded" || milestone.status === "Submitted"),
+  const done = () => {
+    onChanged();
+    notifyEscrowChanged();
   };
+  const ask = (r: Omit<ReviewRequest, "onDone">) => setReview({ ...r, onDone: done });
+
+  const can = readOnly
+    ? {}
+    : {
+        fund: role === "client" && milestone.status === "Pending",
+        submit: role === "freelancer" && milestone.status === "Funded",
+        approve: role === "client" && milestone.status === "Submitted",
+        claim: role === "freelancer" && milestone.status === "Submitted" && now >= deadline,
+        dispute: role === "client" && milestone.status === "Submitted" && now < deadline,
+        resolve: role === "arbiter" && milestone.status === "Disputed",
+        refund: role === "freelancer" && (milestone.status === "Funded" || milestone.status === "Submitted"),
+      };
 
   const freelancerPart = Math.floor((milestone.amount * splitPct) / 100);
+  const splitFee = Math.floor((freelancerPart * agreement.feeBps) / BPS_DENOMINATOR);
   const evidenceIsLink = /^https?:\/\/\S+$/i.test(evidence.trim());
   const dateLocale = lang === "es" ? "es-BO" : "en-US";
+  const payoutRows = [
+    { label: t("rv.amount"), value: usd(milestone.amount) },
+    { label: t("rv.fee", { pct }), value: `− ${usd(fee)}` },
+    { label: `${t("rv.freelancerGets")} (${F})`, value: usd(net), strong: true },
+  ];
 
   return (
-    <div className={`rounded-xl border border-l-4 border-slate-200 bg-white p-4 shadow-sm ${TONE_BORDER[step.tone]}`}>
+    <div className={`rounded-3xl border border-l-4 border-line bg-white p-5 shadow-sm ${TONE_BORDER[step.tone]}`}>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{t("ms.milestone", { n: index + 1 })}</p>
-          <p className="font-semibold text-slate-900">{milestone.title}</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-ink/40">{t("ms.milestone", { n: index + 1 })}</p>
+          <p className="font-semibold">{milestone.title}</p>
         </div>
         <div className="text-right">
-          <p className="text-lg font-semibold text-slate-900">
-            {amount} <span className="text-sm font-normal text-slate-500">USDC</span>
+          <p className="text-lg font-semibold">
+            {amount} <span className="text-sm font-normal text-ink/50">USDC</span>
           </p>
-          <span
-            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${TONE_BADGE[step.tone]}`}
-          >
+          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${TONE_BADGE[step.tone]}`}>
             {step.tone === "safe" && <span aria-hidden>🔒</span>}
             {t(step.label)}
           </span>
         </div>
       </div>
 
-      <p className={`mt-2 text-sm ${step.needsAction ? "font-medium text-slate-900" : "text-slate-600"}`}>
+      <p className={`mt-2 text-sm ${step.needsAction ? "font-medium" : "text-ink/60"}`}>
         {step.needsAction && (
           <span className="mr-1.5 rounded-full bg-bo-yellow px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ink">
             {t("ms.yourTurn")}
@@ -101,7 +99,7 @@ export default function MilestoneRow({
         {t(step.text)}
       </p>
 
-      <p className="mt-1 text-xs text-slate-500">{t("ms.fee", { fee: formatAmount(fee), net: formatAmount(net) })}</p>
+      <p className="mt-1 text-xs text-ink/50">{t("ms.fee", { fee: formatAmount(fee), net: formatAmount(net) })}</p>
 
       {milestone.status === "Submitted" && (
         <p className="mt-1 text-xs text-amber-700">
@@ -117,136 +115,170 @@ export default function MilestoneRow({
 
       {milestone.evidence && (
         <div className="mt-2 text-xs">
-          <span className="text-slate-500">{t("ms.delivered")} </span>
+          <span className="text-ink/50">{t("ms.delivered")} </span>
           {/^https?:\/\//i.test(milestone.evidence) ? (
             <a href={milestone.evidence} target="_blank" rel="noreferrer noopener nofollow" className="break-all text-brand-700 underline">
               {milestone.evidence}
             </a>
           ) : (
-            <span className="break-all text-slate-700">{milestone.evidence}</span>
+            <span className="break-all">{milestone.evidence}</span>
           )}
         </div>
       )}
       {milestone.disputeReason && (
-        <div className="mt-2 rounded-md bg-red-50 px-2 py-1 text-xs text-red-700">
+        <div className="mt-2 rounded-xl bg-red-50 px-3 py-1.5 text-xs text-red-700">
           {t("ms.disputeReason")} {milestone.disputeReason}
         </div>
       )}
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        {can.fund && (
-          <ActionButton
-            disabled={busy}
-            onClick={() =>
-              run(() => getEscrow().fundMilestone(agreement.id, index), t("ms.lockConfirm", { amount, title: milestone.title }))
-            }
-          >
-            {t("ms.lock", { amount })}
-          </ActionButton>
-        )}
-
-        {can.submit && (
-          <>
-            <input
-              value={evidence}
-              onChange={(e) => setEvidence(e.target.value)}
-              placeholder={t("ms.workPh")}
-              aria-label={t("ms.workPh")}
-              className="min-w-0 flex-1 rounded-full border border-slate-300 px-3 py-1.5 text-sm sm:max-w-sm"
-            />
+      {!readOnly && (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {can.fund && (
             <ActionButton
-              onClick={() => run(() => getEscrow().submitMilestone(agreement.id, index, evidence.trim()))}
-              disabled={!evidenceIsLink || busy}
-            >
-              {t("ms.submit")}
-            </ActionButton>
-          </>
-        )}
-
-        {can.approve && (
-          <ActionButton
-            disabled={busy}
-            onClick={() =>
-              run(
-                () => getEscrow().approveMilestone(agreement.id, index),
-                t("ms.approveConfirm", { amount, net: formatAmount(net) }),
-              )
-            }
-          >
-            {t("ms.approve")}
-          </ActionButton>
-        )}
-
-        {can.claim && (
-          <ActionButton disabled={busy} onClick={() => run(() => getEscrow().claimMilestone(agreement.id, index))}>
-            {t("ms.claim", { net: formatAmount(net) })}
-          </ActionButton>
-        )}
-
-        {can.dispute && (
-          <>
-            <input
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder={t("ms.reasonPh")}
-              aria-label={t("ms.reasonPh")}
-              className="min-w-0 flex-1 rounded-full border border-red-200 px-3 py-1.5 text-sm sm:max-w-xs"
-            />
-            <ActionButton
-              danger
               onClick={() =>
-                run(() => getEscrow().disputeMilestone(agreement.id, index, reason.trim()), t("ms.disputeConfirm"))
+                ask({
+                  title: "rv.fund",
+                  rows: [
+                    { label: t("rv.amount"), value: usd(milestone.amount), strong: true },
+                    { label: t("rv.from"), value: `${t("rv.yourWallet")} (${C})` },
+                    { label: t("rv.to"), value: t("rv.contract") },
+                  ],
+                  what: "rv.whatFund",
+                  action: () => getEscrow().fundMilestone(agreement.id, index),
+                })
               }
-              disabled={!reason.trim() || busy}
             >
-              {t("ms.dispute")}
+              {t("ms.lock", { amount })}
             </ActionButton>
-          </>
-        )}
+          )}
 
-        {can.resolve && (
-          <div className="w-full space-y-2 rounded-lg bg-slate-50 p-3">
-            <label className="flex items-center gap-3 text-xs text-slate-600">
-              <span>{t("ms.share")}</span>
+          {can.submit && (
+            <>
               <input
-                type="range"
-                min={0}
-                max={100}
-                value={splitPct}
-                onChange={(e) => setSplitPct(Number(e.target.value))}
-                className="flex-1 accent-brand-600"
+                value={evidence}
+                onChange={(e) => setEvidence(e.target.value)}
+                placeholder={t("ms.workPh")}
+                aria-label={t("ms.workPh")}
+                className="min-w-0 flex-1 rounded-full border border-line px-4 py-2 text-sm sm:max-w-sm"
               />
-              <span className="w-10 text-right font-semibold text-slate-800">{splitPct}%</span>
-            </label>
-            <p className="text-xs text-slate-500">
-              {t("ms.splitLine", { f: formatAmount(freelancerPart), c: formatAmount(milestone.amount - freelancerPart) })}
-            </p>
+              <ActionButton
+                disabled={!evidenceIsLink}
+                onClick={() =>
+                  ask({
+                    title: "rv.submit",
+                    rows: [
+                      { label: t("ms.milestone", { n: index + 1 }), value: milestone.title },
+                      { label: t("ms.delivered"), value: evidence.trim() },
+                    ],
+                    what: "rv.whatSubmit",
+                    action: () => getEscrow().submitMilestone(agreement.id, index, evidence.trim()),
+                  })
+                }
+              >
+                {t("ms.submit")}
+              </ActionButton>
+            </>
+          )}
+
+          {can.approve && (
             <ActionButton
-              disabled={busy}
               onClick={() =>
-                run(
-                  () => getEscrow().resolveDispute(agreement.id, index, splitPct * 100),
-                  t("ms.resolveConfirm", { f: splitPct, c: 100 - splitPct }),
-                )
+                ask({ title: "rv.approve", rows: payoutRows, what: "rv.whatApprove", action: () => getEscrow().approveMilestone(agreement.id, index) })
               }
             >
-              {t("ms.resolve")}
+              {t("ms.approve")}
             </ActionButton>
-          </div>
-        )}
+          )}
 
-        {can.refund && (
-          <ActionButton
-            subtle
-            disabled={busy}
-            onClick={() => run(() => getEscrow().refundMilestone(agreement.id, index), t("ms.refundConfirm", { amount }))}
-          >
-            {t("ms.refund")}
-          </ActionButton>
-        )}
+          {can.claim && (
+            <ActionButton
+              onClick={() =>
+                ask({ title: "rv.claim", rows: payoutRows, what: "rv.whatClaim", action: () => getEscrow().claimMilestone(agreement.id, index) })
+              }
+            >
+              {t("ms.claim", { net: formatAmount(net) })}
+            </ActionButton>
+          )}
 
-        <TxStatus phase={phase} error={err} txHash={txHash} />
-      </div>
+          {can.dispute && (
+            <>
+              <input
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder={t("ms.reasonPh")}
+                aria-label={t("ms.reasonPh")}
+                className="min-w-0 flex-1 rounded-full border border-red-200 px-4 py-2 text-sm sm:max-w-xs"
+              />
+              <ActionButton
+                danger
+                disabled={!reason.trim()}
+                onClick={() =>
+                  ask({
+                    title: "rv.dispute",
+                    rows: [
+                      { label: t("rv.amount"), value: usd(milestone.amount) },
+                      { label: t("ms.disputeReason"), value: reason.trim() },
+                    ],
+                    what: "rv.whatDispute",
+                    action: () => getEscrow().disputeMilestone(agreement.id, index, reason.trim()),
+                  })
+                }
+              >
+                {t("ms.dispute")}
+              </ActionButton>
+            </>
+          )}
+
+          {can.resolve && (
+            <div className="w-full space-y-2 rounded-2xl bg-paper p-4">
+              <label className="flex items-center gap-3 text-xs text-ink/60">
+                <span>{t("ms.share")}</span>
+                <input type="range" min={0} max={100} value={splitPct} onChange={(e) => setSplitPct(Number(e.target.value))} className="flex-1 accent-ink" />
+                <span className="w-10 text-right font-semibold text-ink">{splitPct}%</span>
+              </label>
+              <p className="text-xs text-ink/50">{t("ms.splitLine", { f: formatAmount(freelancerPart), c: formatAmount(milestone.amount - freelancerPart) })}</p>
+              <ActionButton
+                onClick={() =>
+                  ask({
+                    title: "rv.resolve",
+                    rows: [
+                      { label: t("rv.amount"), value: usd(milestone.amount) },
+                      { label: `${t("rv.freelancerGets")} (${F})`, value: usd(freelancerPart - splitFee), strong: true },
+                      { label: t("rv.fee", { pct }), value: usd(splitFee) },
+                      { label: `${t("rv.clientGets")} (${C})`, value: usd(milestone.amount - freelancerPart), strong: true },
+                    ],
+                    what: "rv.whatResolve",
+                    action: () => getEscrow().resolveDispute(agreement.id, index, splitPct * 100),
+                  })
+                }
+              >
+                {t("ms.resolve")}
+              </ActionButton>
+            </div>
+          )}
+
+          {can.refund && (
+            <ActionButton
+              subtle
+              onClick={() =>
+                ask({
+                  title: "rv.refund",
+                  rows: [
+                    { label: t("rv.amount"), value: usd(milestone.amount) },
+                    { label: `${t("rv.clientGets")} (${C})`, value: usd(milestone.amount), strong: true },
+                  ],
+                  what: "rv.whatRefund",
+                  action: () => getEscrow().refundMilestone(agreement.id, index),
+                })
+              }
+            >
+              {t("ms.refund")}
+            </ActionButton>
+          )}
+        </div>
+      )}
+
+      <ReviewDialog request={review} onClose={() => setReview(null)} />
     </div>
   );
 }
@@ -267,14 +299,14 @@ function ActionButton({
   const base = danger
     ? "bg-red-600 text-white hover:bg-red-500"
     : subtle
-      ? "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+      ? "border border-line bg-white text-ink/70 hover:border-ink"
       : "bg-ink text-white hover:bg-black";
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`rounded-full px-4 py-1.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40 ${base}`}
+      className={`rounded-full px-5 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40 ${base}`}
     >
       {children}
     </button>

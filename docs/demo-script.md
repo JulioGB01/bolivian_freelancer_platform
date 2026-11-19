@@ -18,8 +18,8 @@ in demo mode (no wallet, no testnet).
 1. **Home** — read the value proposition ("money locked before you start"), the
    four "How it works" steps and the three feature cards.
 2. **Connect as Freelancer** — top-right *Connect wallet* → *Freelancer (demo)*. The
-   wallet menu shows **Freelancer · 100 USDC**. Use this same menu to switch roles at any time.
-3. **Create an agreement** — *New agreement*. Fill:
+   wallet menu shows **Freelancer · 100 USDC**. The **Freelancer / Client / Arbiter** tabs at the top switch your demo role.
+3. **Create an agreement** — open the app (**Open app**), then *New agreement*. Fill:
    - Title: `Logo design`
    - Client address: `demo-client`
    - Review window: **1 minute (testing)**, so the claim/dispute flow can be tested quickly
@@ -29,8 +29,8 @@ in demo mode (no wallet, no testnet).
      **Create agreement**. You land on the agreement detail page.
 4. **See the money panel** — note the "Locked in escrow right now" panel (0 USDC), the
    locked / settled / not funded bar, and the **Copy link for your client** button.
-5. **Lock funds as Client** — switch to **Client (demo)** from the wallet menu. On
-   milestone 1 click **Lock 25.00 USDC** and confirm. The locked amount becomes 25 USDC,
+5. **Lock funds as Client** — click the **Client** tab. Open the proposal under
+   *Proposals to accept* and follow the three steps; **Lock 25.00 USDC** opens a review, then a receipt. The locked amount becomes 25 USDC,
    the milestone shows **Funds locked**, and the client's balance drops.
 6. **Submit as Freelancer** — switch back to **Freelancer**. On milestone 1, paste any
    link (e.g. `https://drive.google.com/example`) into the evidence field and
@@ -42,7 +42,7 @@ in demo mode (no wallet, no testnet).
    button appears by itself (no page refresh); click it.
 9. **Dispute and resolve** — create a third milestone, fund + submit it, and as
    **Client** click **Open dispute** (with a reason) before the window ends. Switch to
-   **Arbiter (demo)**, open the **Disputes** page, drag the split slider (e.g. 60%),
+   **Arbiter (demo)**, open the **Arbiter** tab, drag the split slider (e.g. 60%),
    and **Resolve dispute**. The freelancer gets 60% (minus fee), the client gets 40%.
 10. **Refund** — fund a milestone and, as **Freelancer**, click **Refund client**. The
     full amount returns to the client.

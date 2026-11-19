@@ -2,16 +2,20 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import Invitation from "./Invitation";
 import MilestoneRow from "./MilestoneRow";
 import MoneyLocked from "./MoneyLocked";
+import Timeline from "./Timeline";
+import { EXPLORER_URL, ESCROW_CONTRACT_ID, USDC_CONTRACT_ID } from "@/lib/config";
 import { ESCROW_CHANGED, getEscrow } from "@/lib/escrow";
-import { shortAddress } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 import { useT, type MsgKey, type TFn } from "@/lib/i18n";
+import { useMode } from "@/lib/mode";
 import { roleIn } from "@/lib/status";
 import { useWallet } from "@/lib/useWallet";
 import type { Agreement, Config } from "@/lib/types";
 
-function duration(secs: number, t: TFn): string {
+export function duration(secs: number, t: TFn): string {
   const units: [number, MsgKey][] = [
     [86400, "dur.day"],
     [3600, "dur.hour"],
@@ -25,14 +29,13 @@ function duration(secs: number, t: TFn): string {
   return t("dur.second", { n: secs });
 }
 
-export default function AgreementDetail({ id }: { id: number }) {
-  const { t } = useT();
+/** Loads one agreement and the contract config, and reloads after any escrow change. */
+export function useAgreement(id: number) {
   const { wallet } = useWallet();
   const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [config, setConfig] = useState<Config | null>(null);
   const [missing, setMissing] = useState(false);
   const [loadError, setLoadError] = useState("");
-  const [copied, setCopied] = useState(false);
 
   const refresh = useCallback(() => {
     getEscrow()
@@ -55,88 +58,158 @@ export default function AgreementDetail({ id }: { id: number }) {
     return () => window.removeEventListener(ESCROW_CHANGED, refresh);
   }, [refresh, wallet]);
 
-  async function copyLink() {
+  return { agreement, config, missing, loadError, refresh };
+}
+
+type Tab = "summary" | "activity" | "details";
+
+export default function AgreementDetail({ id }: { id: number }) {
+  const { t, lang } = useT();
+  const mode = useMode();
+  const { wallet } = useWallet();
+  const { agreement, config, missing, loadError, refresh } = useAgreement(id);
+  const [tab, setTab] = useState<Tab>("summary");
+  const [copied, setCopied] = useState<"client" | "verify" | null>(null);
+
+  async function copy(kind: "client" | "verify") {
+    const url = `${window.location.origin}${kind === "client" ? `/app/acuerdo/${id}` : `/verificar/${id}`}`;
     try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(url);
+      setCopied(kind);
+      window.setTimeout(() => setCopied(null), 2000);
     } catch {
-      window.prompt(t("ag.copyPrompt"), window.location.href);
+      window.prompt(t("ag.copyPrompt"), url);
     }
   }
 
   if (missing || loadError) {
     return (
       <div className="rounded-3xl border border-line bg-white p-8 text-center">
-        <p className="text-slate-600">{missing ? t("ag.notFound", { id }) : loadError}</p>
-        <Link href="/dashboard" className="mt-2 inline-block text-sm text-brand-700 underline">
+        <p className="text-ink/60">{missing ? t("ag.notFound", { id }) : loadError}</p>
+        <Link href="/app" className="mt-2 inline-block text-sm text-brand-700 underline">
           {t("ag.back")}
         </Link>
       </div>
     );
   }
 
-  if (!agreement || !config) return <p className="text-slate-500">{t("ag.loading")}</p>;
+  if (!agreement || !config) return <p className="text-ink/50">{t("ag.loading")}</p>;
 
   const role = roleIn(agreement, wallet?.address, config.arbiter);
-  const showShare = role === "freelancer" && agreement.milestones.some((m) => m.status === "Pending");
+  const nothingFunded = agreement.milestones.every((m) => m.status === "Pending");
+  const showInvitation = nothingFunded && role !== "freelancer" && role !== "arbiter";
+  const showShare = role === "freelancer" && nothingFunded;
+  const backHref = role === "client" ? "/app/cliente" : role === "arbiter" ? "/app/arbitro" : "/app/freelancer";
+  const locale = lang === "es" ? "es-BO" : "en-US";
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div>
-        <Link href="/dashboard" className="text-sm text-brand-700 hover:underline">
+        <Link href={backHref} className="text-sm text-brand-700 hover:underline">
           {t("ag.back")}
         </Link>
-        <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
+        <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
           <h1 className="text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">{agreement.title}</h1>
-          <button
-            type="button"
-            onClick={copyLink}
-            className="rounded-full border border-slate-300 bg-white px-4 py-1.5 text-sm font-medium text-slate-700 hover:border-brand-600 hover:text-brand-700"
-          >
-            {copied ? t("ag.copied") : t("ag.copy")}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            {role === "freelancer" && (
+              <button type="button" onClick={() => copy("client")} className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white hover:bg-black">
+                {copied === "client" ? t("ag.copied") : t("ag.copy")}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => copy("verify")}
+              className="rounded-full border border-line bg-white px-4 py-2 text-sm font-medium hover:border-ink"
+            >
+              {copied === "verify" ? t("ver.copied") : t("ver.copy")}
+            </button>
+          </div>
         </div>
-        <dl className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm text-slate-500">
-          <Item label={t("ag.agreement")} value={`#${agreement.id}`} />
-          <Item label={t("ag.freelancer")} value={shortAddress(agreement.freelancer)} title={agreement.freelancer} mono />
-          <Item label={t("ag.client")} value={shortAddress(agreement.client)} title={agreement.client} mono />
-          <Item label={t("ag.fee")} value={`${(agreement.feeBps / 100).toFixed(2)}% ${t("ag.fixed")}`} />
-          <Item label={t("ag.window")} value={duration(agreement.reviewWindowSecs, t)} />
-        </dl>
-        {wallet ? (
-          <p className="mt-2 inline-block rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
-            {t("ag.viewingAs")} <strong>{t(`role.${role}` as MsgKey)}</strong>
-          </p>
-        ) : (
-          <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">{t("ag.connectToAct")}</p>
-        )}
+        <p className="mt-2 text-sm text-ink/50">
+          #{agreement.id} · {t("ag.fee")} {(agreement.feeBps / 100).toFixed(2)}% {t("ag.fixed")} · {t("ag.window")}{" "}
+          {duration(agreement.reviewWindowSecs, t)}
+          {wallet && (
+            <>
+              {" · "}
+              {t("ag.viewingAs")} <strong className="text-ink">{t(`role.${role}` as MsgKey)}</strong>
+            </>
+          )}
+        </p>
       </div>
 
+      {showInvitation && <Invitation agreement={agreement} onChanged={refresh} />}
+
       {showShare && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <div className="rounded-2xl border border-bo-yellow bg-bo-yellow/20 p-4 text-sm">
           <strong>{t("ag.nextShareT")}</strong> {t("ag.nextShareB")}
         </div>
       )}
 
-      <MoneyLocked agreement={agreement} />
-
-      <div className="space-y-3">
-        {agreement.milestones.map((m, i) => (
-          <MilestoneRow key={i} agreement={agreement} milestone={m} index={i} role={role} onChanged={refresh} />
+      <div className="flex gap-1 rounded-full bg-white p-1 text-sm font-semibold shadow-sm sm:inline-flex" role="tablist">
+        {(["summary", "activity", "details"] as Tab[]).map((k) => (
+          <button
+            key={k}
+            type="button"
+            role="tab"
+            aria-selected={tab === k}
+            onClick={() => setTab(k)}
+            className={`flex-1 rounded-full px-5 py-2 transition sm:flex-none ${tab === k ? "bg-ink text-white" : "text-ink/60 hover:text-ink"}`}
+          >
+            {t(`tab.${k}` as MsgKey)}
+          </button>
         ))}
       </div>
+
+      {tab === "summary" && (
+        <div className="space-y-4">
+          <MoneyLocked agreement={agreement} />
+          <div className="space-y-3">
+            {agreement.milestones.map((m, i) => (
+              <MilestoneRow key={i} agreement={agreement} milestone={m} index={i} role={role} onChanged={refresh} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tab === "activity" && <Timeline id={agreement.id} />}
+
+      {tab === "details" && (
+        <dl className="divide-y divide-line rounded-3xl border border-line bg-white text-sm">
+          <Row label={t("ag.agreement")} value={`#${agreement.id}`} />
+          <Row label={t("ag.freelancer")} value={agreement.freelancer} mono />
+          <Row label={t("ag.client")} value={agreement.client} mono />
+          <Row label={t("area.arbiter")} value={config.arbiter} mono />
+          <Row label={t("ag.fee")} value={`${(agreement.feeBps / 100).toFixed(2)}% ${t("ag.fixed")}`} />
+          <Row label={t("ag.window")} value={duration(agreement.reviewWindowSecs, t)} />
+          <Row label={t("det.created")} value={formatDate(agreement.createdAt, locale)} />
+          <Row label={t("det.network")} value={mode === "testnet" ? "Stellar testnet" : "Demo"} />
+          {mode === "testnet" && (
+            <>
+              <Row label={t("det.contract")} value={ESCROW_CONTRACT_ID} mono href={`${EXPLORER_URL}/contract/${ESCROW_CONTRACT_ID}`} />
+              <Row label={t("det.token")} value={USDC_CONTRACT_ID} mono href={`${EXPLORER_URL}/contract/${USDC_CONTRACT_ID}`} />
+            </>
+          )}
+          <Row label={t("det.verifyLink")} value={`/verificar/${agreement.id}`} href={`/verificar/${agreement.id}`} />
+        </dl>
+      )}
     </div>
   );
 }
 
-function Item({ label, value, title, mono }: { label: string; value: string; title?: string; mono?: boolean }) {
+function Row({ label, value, mono, href }: { label: string; value: string; mono?: boolean; href?: string }) {
   return (
-    <div>
-      <dt className="inline">{label}: </dt>
-      <dd className={`inline ${mono ? "font-mono" : ""}`} title={title}>
-        {value}
+    <div className="grid gap-1 px-5 py-3.5 sm:grid-cols-[12rem_1fr]">
+      <dt className="text-ink/50">{label}</dt>
+      <dd className={`break-all ${mono ? "font-mono text-xs leading-5" : ""}`}>
+        {href ? (
+          <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel="noreferrer noopener" className="text-brand-700 underline underline-offset-2">
+            {value} {href.startsWith("http") ? "↗" : ""}
+          </a>
+        ) : (
+          value
+        )}
       </dd>
     </div>
   );
 }
+

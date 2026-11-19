@@ -3,6 +3,7 @@
 // Small client-side pieces of the page frame: language toggle, mode banner, footer text,
 // and shared building blocks (page container, arrow pill button).
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { setLang, useT } from "@/lib/i18n";
 import { setMode, useMode } from "@/lib/mode";
@@ -32,6 +33,9 @@ export function LangToggle() {
 export function ModeBanner() {
   const { t } = useT();
   const mode = useMode();
+  const pathname = usePathname();
+  // Only inside the app and on verify pages; the public website does not depend on the mode.
+  if (!(pathname.startsWith("/app") || pathname.startsWith("/verificar/"))) return null;
   const demo = mode === "demo";
   return (
     <div className="mx-auto mt-3 flex max-w-6xl flex-wrap items-center justify-center gap-x-2 gap-y-1 px-5 text-center text-xs text-ink/60">

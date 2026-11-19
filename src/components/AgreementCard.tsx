@@ -17,7 +17,7 @@ export default function AgreementCard({ agreement, viewer, now }: { agreement: A
 
   return (
     <Link
-      href={`/agreements/${agreement.id}`}
+      href={`/app/acuerdo/${agreement.id}`}
       className="block rounded-3xl border border-line bg-white p-4 shadow-sm transition hover:border-ink hover:shadow-lg"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">

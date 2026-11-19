@@ -40,3 +40,24 @@ export interface Agreement {
   milestones: Milestone[];
   createdAt: number;
 }
+
+/** One state change of an agreement, for the activity timeline. */
+export type ActivityKind =
+  | "created"
+  | "funded"
+  | "submitted"
+  | "approved"
+  | "claimed"
+  | "disputed"
+  | "resolved"
+  | "refunded";
+
+export interface ActivityItem {
+  kind: ActivityKind;
+  /** Milestone index; undefined for "created". */
+  index?: number;
+  /** Unix seconds. */
+  at: number;
+  /** Testnet only: the transaction that caused it. */
+  txHash?: string;
+}

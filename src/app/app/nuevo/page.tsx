@@ -80,7 +80,7 @@ export default function NewAgreement() {
         reviewWindowSecs,
       });
       notifyEscrowChanged();
-      router.push(`/agreements/${id}`);
+      router.push(`/app/acuerdo/${id}`);
     } catch (e) {
       setError(errorMessage(e, t));
       setBusy(false);

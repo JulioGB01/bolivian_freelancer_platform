@@ -45,6 +45,20 @@ Nobody can change the rules after creation, not even the platform. Once money is
 | **Dashboard** | **Real agreement read from the testnet contract** |
 | ![Dashboard](docs/screenshots/dashboard.jpg) | ![Testnet agreement](docs/screenshots/testnet-agreement.jpg) |
 
+## Site structure
+
+| Part | Path | For |
+|---|---|---|
+| Website | `/`, `/como-funciona` | What it is, steps per role, fees, FAQ |
+| Public proof | `/verificar/[id]` | Anyone: locked money, milestone status and on-chain activity, no wallet |
+| Freelancer area | `/app/freelancer`, `/app/nuevo` | Create agreements, share the link, deliver, claim |
+| Client area | `/app/cliente` | Proposals to accept, agreements in progress |
+| Arbiter area | `/app/arbitro` | Split disputed milestones |
+| Agreement | `/app/acuerdo/[id]` | Tabs: Summary · Activity · Details. A client sees a guided invitation first |
+| Wallet | `/app/billetera` | Test XLM, USDC trustline, faucet |
+
+Every money action opens a **review** (amount, fee, who gets what) before the wallet signs, and ends with a **receipt** linking to the transaction. The **activity timeline** is read from the contract's events on Stellar.
+
 ## Why Stellar
 
 With a database, the platform holds the money and everyone has to trust the platform. With a Soroban contract, the money sits in a public contract whose rules can't change. **The freelancer can verify the funds themselves on a block explorer.** That "see the money" promise only exists because of the chain, and cheap USDC settlement on Stellar is what keeps the fee small.
@@ -73,8 +87,8 @@ npm install
 npm run dev        # http://localhost:3000
 ```
 
-- **Demo mode** (the default) needs no wallet. Switch between Freelancer, Client and Arbiter from the menu at the top right.
-- **Testnet mode:** click **→ Testnet real** in the banner and connect Freighter (set to Testnet). In the wallet menu, get test XLM, enable USDC, then get 1,000 test USDC.
+- **Demo mode** (the default) needs no wallet. The **Freelancer / Cliente / Árbitro** tabs switch your role.
+- **Testnet mode:** click **Testnet real ↗** in the banner, connect Freighter (set to Testnet), then use the **Billetera** page to get test XLM, enable USDC and get 1,000 test USDC.
 
 The **ES / EN** button switches the language.
 

@@ -3,9 +3,8 @@ import { Instrument_Serif, Inter_Tight } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import BrandMark from "@/components/BrandMark";
-import { FooterText, LangToggle, ModeBanner } from "@/components/Chrome";
-import NavLinks from "@/components/NavLinks";
-import WalletButton from "@/components/WalletButton";
+import { FooterText, ModeBanner } from "@/components/Chrome";
+import NavLinks, { HeaderRight } from "@/components/NavLinks";
 
 const interTight = Inter_Tight({ subsets: ["latin"], variable: "--font-inter-tight", display: "swap" });
 const instrumentSerif = Instrument_Serif({
@@ -38,9 +37,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="order-3 w-full sm:order-2 sm:w-auto">
               <NavLinks />
             </div>
-            <div className="order-2 flex items-center gap-2 sm:order-3">
-              <LangToggle />
-              <WalletButton />
+            <div className="order-2 sm:order-3">
+              <HeaderRight />
             </div>
           </div>
         </header>

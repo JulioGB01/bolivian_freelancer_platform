@@ -9,7 +9,7 @@
 import { getMode } from "./mode";
 import { RealEscrow } from "./escrowReal";
 import { BPS_DENOMINATOR } from "./format";
-import type { Agreement, Config, Milestone, MilestoneStatus } from "./types";
+import type { ActivityItem, ActivityKind, Agreement, Config, Milestone, MilestoneStatus } from "./types";
 
 export interface NewMilestoneInput {
   title: string;
@@ -39,6 +39,8 @@ export interface EscrowApi {
   disputeMilestone(id: number, index: number, reason: string): Promise<void>;
   resolveDispute(id: number, index: number, freelancerBps: number): Promise<void>;
   refundMilestone(id: number, index: number): Promise<void>;
+  /** State changes of one agreement, oldest first. */
+  activity(id: number): Promise<ActivityItem[]>;
   /** Hash of the last submitted transaction (testnet mode only). */
   lastTxHash?: string | null;
 }
@@ -64,6 +66,7 @@ interface MockState {
   nextId: number;
   agreements: Record<number, Agreement>;
   balances: Record<string, number>;
+  activity?: Record<number, ActivityItem[]>;
 }
 
 function nowSecs(): number {
@@ -118,6 +121,15 @@ class MockEscrow implements EscrowApi {
 
   constructor() {
     this.state = loadState();
+  }
+
+  private log(id: number, kind: ActivityKind, index?: number): void {
+    const all = (this.state.activity ??= {});
+    (all[id] ??= []).push({ kind, index, at: nowSecs() });
+  }
+
+  async activity(id: number): Promise<ActivityItem[]> {
+    return [...(this.state.activity?.[id] ?? [])];
   }
 
   private persist(): void {
@@ -200,7 +212,7 @@ class MockEscrow implements EscrowApi {
       createdAt: nowSecs(),
     };
     this.state.nextId += 1;
-    this.persist();
+    this.log(id, "created"); this.persist();
     return id;
   }
 
@@ -209,7 +221,7 @@ class MockEscrow implements EscrowApi {
     const m = this.requireStatus(a, index, ["Pending"]);
     this.transfer(a.client, "CONTRACT", m.amount);
     m.status = "Funded";
-    this.persist();
+    this.log(id, "funded", index); this.persist();
   }
 
   async submitMilestone(id: number, index: number, evidence: string): Promise<void> {
@@ -218,7 +230,7 @@ class MockEscrow implements EscrowApi {
     m.evidence = evidence;
     m.submittedAt = nowSecs();
     m.status = "Submitted";
-    this.persist();
+    this.log(id, "submitted", index); this.persist();
   }
 
   async approveMilestone(id: number, index: number): Promise<void> {
@@ -229,7 +241,7 @@ class MockEscrow implements EscrowApi {
     const fee = Math.floor((amount * a.feeBps) / BPS_DENOMINATOR);
     this.transfer("CONTRACT", a.freelancer, amount - fee);
     this.transfer("CONTRACT", this.state.config.feeRecipient, fee);
-    this.persist();
+    this.log(id, "approved", index); this.persist();
   }
 
   async claimMilestone(id: number, index: number): Promise<void> {
@@ -241,7 +253,7 @@ class MockEscrow implements EscrowApi {
     const fee = Math.floor((amount * a.feeBps) / BPS_DENOMINATOR);
     this.transfer("CONTRACT", a.freelancer, amount - fee);
     this.transfer("CONTRACT", this.state.config.feeRecipient, fee);
-    this.persist();
+    this.log(id, "claimed", index); this.persist();
   }
 
   async disputeMilestone(id: number, index: number, reason: string): Promise<void> {
@@ -250,7 +262,7 @@ class MockEscrow implements EscrowApi {
     if (nowSecs() >= m.submittedAt + a.reviewWindowSecs) throw new EscrowError("ReviewWindowClosed");
     m.disputeReason = reason;
     m.status = "Disputed";
-    this.persist();
+    this.log(id, "disputed", index); this.persist();
   }
 
   async resolveDispute(id: number, index: number, freelancerBps: number): Promise<void> {
@@ -265,7 +277,7 @@ class MockEscrow implements EscrowApi {
     this.transfer("CONTRACT", a.freelancer, freelancerPart - fee);
     this.transfer("CONTRACT", this.state.config.feeRecipient, fee);
     this.transfer("CONTRACT", a.client, clientPart);
-    this.persist();
+    this.log(id, "resolved", index); this.persist();
   }
 
   async refundMilestone(id: number, index: number): Promise<void> {
@@ -274,7 +286,7 @@ class MockEscrow implements EscrowApi {
     const amount = m.amount;
     m.status = "Refunded";
     this.transfer("CONTRACT", a.client, amount);
-    this.persist();
+    this.log(id, "refunded", index); this.persist();
   }
 }
 
