@@ -14,6 +14,7 @@ export const DEPLOYMENT = {
   networkPassphrase: "Test SDF Network ; September 2015",
   escrowContractId: "CDG4IJBASV35CIFBJ66O6HGCV3VWCLDKHCHAXS2QZFLXRKGP4LRNW2LO",
   usdcContractId: "CAHWJDBZVQCKB3J5PLBQKJJJLG4BDYANSK4JTAMS2TYEKWRLQZFYDXR2",
+  faucetContractId: "CB74EKQ5HJBY7NF277QJIQHI7W4QA6IOAPXW2ALSBV2GTTRE5VOXVO3O",
   usdcCode: "USDC",
   usdcIssuer: "GBAKHIEBPVK2AUODWXKDED4P27WNVTEIZZ647PGCJRFSQVZKU4KB3EGS",
 } as const;
@@ -29,6 +30,7 @@ export const HORIZON_URL = env(process.env.NEXT_PUBLIC_HORIZON_URL, DEPLOYMENT.h
 export const NETWORK_PASSPHRASE = env(process.env.NEXT_PUBLIC_NETWORK_PASSPHRASE, DEPLOYMENT.networkPassphrase);
 export const ESCROW_CONTRACT_ID = env(process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ID, DEPLOYMENT.escrowContractId);
 export const USDC_CONTRACT_ID = env(process.env.NEXT_PUBLIC_USDC_CONTRACT_ID, DEPLOYMENT.usdcContractId);
+export const FAUCET_CONTRACT_ID = env(process.env.NEXT_PUBLIC_FAUCET_CONTRACT_ID, DEPLOYMENT.faucetContractId);
 export const USDC_CODE = env(process.env.NEXT_PUBLIC_USDC_CODE, DEPLOYMENT.usdcCode);
 export const USDC_ISSUER = env(process.env.NEXT_PUBLIC_USDC_ISSUER, DEPLOYMENT.usdcIssuer);
 export const EXPLORER_URL = env(process.env.NEXT_PUBLIC_EXPLORER_URL, "https://stellar.expert/explorer/testnet");

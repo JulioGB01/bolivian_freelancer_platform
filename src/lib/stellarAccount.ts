@@ -1,6 +1,7 @@
-// Testnet account helpers: balances, test XLM (Friendbot), the USDC trustline and the test-USDC faucet.
+// Testnet account helpers: balances, test XLM (Friendbot), the USDC trustline and the on-chain test-USDC faucet.
 import { Asset, BASE_FEE, Horizon, Operation, TransactionBuilder, rpc } from "@stellar/stellar-sdk";
-import { HORIZON_URL, NETWORK_PASSPHRASE, STELLAR_RPC_URL, USDC_CODE, USDC_ISSUER } from "./config";
+import { Client as FaucetClient } from "@/contracts/faucet";
+import { FAUCET_CONTRACT_ID, HORIZON_URL, NETWORK_PASSPHRASE, STELLAR_RPC_URL, USDC_CODE, USDC_ISSUER } from "./config";
 import { parseAmount } from "./format";
 import { signWithWallet } from "./wallet";
 
@@ -50,15 +51,22 @@ export async function addUsdcTrustline(address: string): Promise<string> {
   return result.hash;
 }
 
-/** Asks this app's server to send test USDC (see app/api/faucet/route.ts). */
+/** Gets 1,000 test USDC from the on-chain faucet contract (contracts/faucet). The user signs. */
 export async function requestTestUsdc(address: string): Promise<void> {
-  const res = await fetch("/api/faucet", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ address }),
+  const faucet = new FaucetClient({
+    contractId: FAUCET_CONTRACT_ID,
+    networkPassphrase: NETWORK_PASSPHRASE,
+    rpcUrl: STELLAR_RPC_URL,
+    publicKey: address,
+    signTransaction: (xdr, opts) => signWithWallet(xdr, { ...opts, address }),
   });
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { error?: string };
-    throw new Error(body.error ?? `Faucet ${res.status}`);
+  try {
+    const sent = await (await faucet.drip({ to: address })).signAndSend();
+    sent.result.unwrap();
+  } catch (e) {
+    const m = e instanceof Error ? e.message : String(e);
+    // The faucet's only error (#1) means this account already got test USDC in the last 24 hours.
+    if (/Error\(Contract, #1\)|TooSoon/.test(m)) throw new Error("FaucetTooSoon");
+    throw e;
   }
 }

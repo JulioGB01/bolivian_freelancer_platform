@@ -57,6 +57,7 @@ With a database, the platform holds the money and everyone has to trust the plat
 |---|---|
 | Escrow contract | [`CDG4IJBA…NW2LO`](https://stellar.expert/explorer/testnet/contract/CDG4IJBASV35CIFBJ66O6HGCV3VWCLDKHCHAXS2QZFLXRKGP4LRNW2LO) |
 | Test USDC | [`CAHWJDBZ…DXR2`](https://stellar.expert/explorer/testnet/contract/CAHWJDBZVQCKB3J5PLBQKJJJLG4BDYANSK4JTAMS2TYEKWRLQZFYDXR2) (our own test asset, no real value) |
+| Test-USDC faucet | [`CB74EKQ5…VO3O`](https://stellar.expert/explorer/testnet/contract/CB74EKQ5HJBY7NF277QJIQHI7W4QA6IOAPXW2ALSBV2GTTRE5VOXVO3O) (1,000 test USDC per account per day, signed by the user) |
 | Fee | 5% |
 
 On-chain test: the client locked 100 USDC ([tx](https://stellar.expert/explorer/testnet/tx/e662fa8f39ac084cf8ca0efc32de1ea288a47ea0cffc33049ed2f7554d9cad81)). On approval the contract paid **95 to the freelancer and 5 as the fee** ([tx](https://stellar.expert/explorer/testnet/tx/ebc36775d597b210d0abd29ec1a6b057928ac0caa52c571f3971261ca795c37a)).
@@ -81,7 +82,7 @@ The **ES / EN** button switches the language.
 
 ```
 src/          web app (Next.js): pages, components, escrow client, wallet, translations
-contracts/    Soroban escrow contract in Rust, with 20 unit tests
+contracts/    Soroban contracts in Rust: escrow (20 unit tests) and a test-USDC faucet
 scripts/      testnet deploy, on-chain smoke test, checks
 deployments/  deployed contract ids
 docs/         product, architecture, contract, testing, demo script

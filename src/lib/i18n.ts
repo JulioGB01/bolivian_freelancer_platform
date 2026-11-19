@@ -102,7 +102,6 @@ const es = {
   "setup.getUsdc": "Recibir 1.000 USDC de prueba",
   "setup.ready": "Lista",
   "setup.trustHint": "Tu cuenta necesita aceptar el token USDC de prueba (una firma).",
-  "setup.faucetOff": "El grifo de USDC no está configurado en este servidor.",
   "setup.done": "Hecho",
 
   // Dashboard
@@ -269,6 +268,7 @@ const es = {
   "err.NoAccount": "Tu cuenta no existe en testnet todavía. Recibe XLM de prueba desde el menú de la billetera.",
   "err.Rejected": "Rechazaste la firma en tu billetera.",
   "err.NoWallet": "Conecta tu billetera primero.",
+  "err.FaucetTooSoon": "Ya recibiste USDC de prueba en las últimas 24 horas.",
   "err.generic": "Algo salió mal.",
 } as const;
 
@@ -363,7 +363,6 @@ const en: Record<MsgKey, string> = {
   "setup.getUsdc": "Get 1,000 test USDC",
   "setup.ready": "Ready",
   "setup.trustHint": "Your account needs to accept the test USDC token (one signature).",
-  "setup.faucetOff": "The USDC faucet is not configured on this server.",
   "setup.done": "Done",
 
   "dash.title": "My agreements",
@@ -522,6 +521,7 @@ const en: Record<MsgKey, string> = {
   "err.NoAccount": "Your account does not exist on testnet yet. Get test XLM from the wallet menu.",
   "err.Rejected": "You rejected the signature in your wallet.",
   "err.NoWallet": "Connect your wallet first.",
+  "err.FaucetTooSoon": "You already got test USDC in the last 24 hours.",
   "err.generic": "Something went wrong.",
 };
 

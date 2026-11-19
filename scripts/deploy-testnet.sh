@@ -41,6 +41,12 @@ echo "== Mint 1,000 test USDC to bfe-client"
 $STELLAR contract invoke --id "$USDC_ID" --source-account bfe-admin --network $NET -- \
   mint --to bfe-client --amount 10000000000
 
+echo "== Test-USDC faucet (gives 1,000 test USDC per account per day; users sign themselves)"
+(cd "$ROOT/contracts/faucet" && $STELLAR contract build)
+FAUCET_ID="$($STELLAR contract deploy --wasm "$ROOT/contracts/target/wasm32v1-none/release/bfe_faucet.wasm" --source-account bfe-admin --network $NET --alias bfe-faucet -- --token "$USDC_ID")"
+$STELLAR contract invoke --id "$USDC_ID" --source-account bfe-admin --network $NET -- \
+  mint --to "$FAUCET_ID" --amount 100000000000000
+
 mkdir -p "$ROOT/deployments"
 cat > "$ROOT/deployments/testnet.json" <<EOF
 {
@@ -49,6 +55,7 @@ cat > "$ROOT/deployments/testnet.json" <<EOF
   "networkPassphrase": "Test SDF Network ; September 2015",
   "escrowContractId": "$ESCROW_ID",
   "usdcContractId": "$USDC_ID",
+  "faucetContractId": "$FAUCET_ID",
   "usdcAsset": "USDC:$ADMIN",
   "admin": "$ADMIN",
   "arbiter": "$ARBITER",

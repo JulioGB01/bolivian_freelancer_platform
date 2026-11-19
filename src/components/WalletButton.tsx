@@ -75,8 +75,7 @@ export default function WalletButton() {
       await fn();
       await load();
     } catch (e) {
-      const m = e instanceof Error ? e.message : "";
-      setErr(m === "FaucetNotConfigured" ? t("setup.faucetOff") : errorMessage(e, t));
+      setErr(errorMessage(e, t));
     } finally {
       setBusy(null);
     }

@@ -31,6 +31,7 @@ const NAMED: Record<string, MsgKey> = {
   NoTrustline: "err.NoTrustline",
   NoAccount: "err.NoAccount",
   NoWallet: "err.NoWallet",
+  FaucetTooSoon: "err.FaucetTooSoon",
 };
 
 function messageOf(err: unknown): string {
