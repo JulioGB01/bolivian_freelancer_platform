@@ -5,7 +5,7 @@
 // 1. Estimate & cash out USDC -> BOB via Pollar (QR Simple) at the parallel rate
 // 2. Save USDC with yield via Vaquita
 // 3. Download a verifiable Payment Proof / SIAT receipt (printable HTML or JSON)
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ESCROW_CONTRACT_ID, USDC_CONTRACT_ID } from "@/lib/config";
 import { BPS_DENOMINATOR, formatAmount, USDC_DECIMALS } from "@/lib/format";
 import { useT } from "@/lib/i18n";
@@ -46,6 +46,37 @@ export default function PayoutEcosystemPanel({
   const { t, lang } = useT();
   const mode = useMode();
   const [rateInput, setRateInput] = useState(DEFAULT_BOB_RATE);
+  const [rateLive, setRateLive] = useState(false);
+  const [vaquitaApy, setVaquitaApy] = useState<number | null>(null);
+  const [taxId, setTaxId] = useState("");
+  const [ecoStatus, setEcoStatus] = useState<string>("");
+  const [ecoBusy, setEcoBusy] = useState<"pollar" | "vaquita" | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/ecosystem/pollar")
+      .then((r) => r.json())
+      .then((d: { live?: boolean; rateBobPerUsdc?: number }) => {
+        if (!active) return;
+        if (d.rateBobPerUsdc && Number.isFinite(d.rateBobPerUsdc)) {
+          setRateInput(d.rateBobPerUsdc.toFixed(2));
+        }
+        setRateLive(Boolean(d.live));
+      })
+      .catch(() => {});
+
+    fetch("/api/ecosystem/vaquita")
+      .then((r) => r.json())
+      .then((d: { live?: boolean; apyPct?: number | null }) => {
+        if (!active) return;
+        if (d.live && typeof d.apyPct === "number") setVaquitaApy(d.apyPct);
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const settledMilestones = agreement.milestones
     .map((m, idx) => ({ milestone: m, index: idx, netUnits: netFreelancerUnits(m, agreement.feeBps) }))
@@ -98,6 +129,8 @@ export default function PayoutEcosystemPanel({
         netFreelancerUsdc: formattedUsdc,
         referenceRateBobPerUsdc: validRate || null,
         estimatedBob: validRate ? formattedBob : null,
+        freelancerTaxId: taxId.trim() || null,
+        siatClassification: "Exportación de servicios / Servicios digitales (IVA 0% sujeto a respaldo)",
       },
     };
   }
@@ -217,27 +250,71 @@ export default function PayoutEcosystemPanel({
           </div>
 
           <div className="mt-3 flex flex-wrap items-baseline justify-between gap-2 border-t border-white/15 pt-3">
-            <span className="text-xs text-white/60">{t("eco.estBob")}</span>
+            <span className="text-xs text-white/60">
+              {t("eco.estBob")} · {rateLive ? "API Pollar en vivo" : "Tasa ref."}
+            </span>
             <span className="text-2xl font-semibold text-lime">
               Bs {validRate ? formattedBob : "—"}
             </span>
           </div>
 
-          <a
-            href={`https://pollar.app/?asset=USDC&network=stellar&amount=${encodeURIComponent(netUsdcFloat.toFixed(2))}`}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="mt-4 inline-block w-full bg-lime px-4 py-2.5 text-center text-sm font-semibold text-ink hover:opacity-90"
-          >
-            {t("eco.pollarCta")}
-          </a>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={ecoBusy !== null}
+              onClick={async () => {
+                setEcoBusy("pollar");
+                setEcoStatus("");
+                try {
+                  const res = await fetch("/api/ecosystem/pollar", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      agreementId: agreement.id,
+                      freelancerAddress: agreement.freelancer,
+                      amountUsdc: Number(netUsdcFloat.toFixed(2)),
+                    }),
+                  });
+                  const data = (await res.json()) as { error?: string; payoutId?: string };
+                  setEcoStatus(
+                    res.ok
+                      ? `Retiro Pollar iniciado${data.payoutId ? ` (${data.payoutId})` : ""}.`
+                      : data.error || "Pollar requiere configuración de API en el servidor.",
+                  );
+                } catch {
+                  setEcoStatus("No se pudo conectar con /api/ecosystem/pollar.");
+                } finally {
+                  setEcoBusy(null);
+                }
+              }}
+              className="flex-1 bg-lime px-4 py-2.5 text-center text-sm font-semibold text-ink hover:opacity-90 disabled:opacity-60"
+            >
+              {ecoBusy === "pollar" ? "Conectando..." : t("eco.pollarCta")}
+            </button>
+            <a
+              href={`https://pollar.app/?asset=USDC&network=stellar&amount=${encodeURIComponent(netUsdcFloat.toFixed(2))}`}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="border border-white/30 px-3 py-2.5 text-xs font-semibold text-white hover:border-lime"
+            >
+              Abrir web ↗
+            </a>
+          </div>
+          {ecoStatus && <p className="mt-2 text-xs text-amber-300">{ecoStatus}</p>}
           <p className="mt-2 text-[11px] leading-relaxed text-white/50">{t("eco.pollarNote")}</p>
         </div>
 
         {/* Right column: Vaquita Savings + SIAT / Proof Receipt */}
         <div className="flex flex-col gap-4">
           <div className="flex-1 border border-line bg-paper p-5">
-            <p className="text-base font-semibold text-ink">{t("eco.vaquitaTitle")}</p>
+            <div className="flex items-baseline justify-between gap-2">
+              <p className="text-base font-semibold text-ink">{t("eco.vaquitaTitle")}</p>
+              {vaquitaApy !== null && (
+                <span className="bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-700">
+                  {vaquitaApy.toFixed(2)}% APY
+                </span>
+              )}
+            </div>
             <p className="mt-1 text-xs leading-relaxed text-ink/60">{t("eco.vaquitaSub")}</p>
             <a
               href="https://vaquita.fi/"
@@ -252,6 +329,13 @@ export default function PayoutEcosystemPanel({
           <div className="flex-1 border border-line bg-white p-5">
             <p className="text-base font-semibold text-ink">{t("eco.receiptTitle")}</p>
             <p className="mt-1 text-xs leading-relaxed text-ink/60">{t("eco.receiptSub")}</p>
+            <input
+              type="text"
+              value={taxId}
+              onChange={(e) => setTaxId(e.target.value)}
+              placeholder="NIT o CI (opcional para respaldo SIAT)"
+              className="mt-2 w-full border border-line px-2.5 py-1.5 text-xs text-ink focus:border-ink focus:outline-none"
+            />
             <div className="mt-3 flex flex-wrap gap-2">
               <button
                 type="button"

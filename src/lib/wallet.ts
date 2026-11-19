@@ -5,6 +5,12 @@
 //                 StellarWalletsKit.init, authModal, signTransaction, disconnect.
 import { NETWORK_PASSPHRASE } from "./config";
 import { getMode } from "./mode";
+import {
+  clearPasskeyAccount,
+  getSavedPasskeyAccount,
+  signXdrWithPasskey,
+  unlockPasskeyWallet,
+} from "./passkey";
 
 export type Role = "freelancer" | "client" | "arbiter" | "viewer";
 
@@ -14,6 +20,8 @@ export interface ConnectedWallet {
   role: Role;
   /** "demo" or "testnet". */
   kind: "demo" | "testnet";
+  /** Testnet provider: Stellar Wallets Kit ("kit") or WebAuthn Passkey ("passkey"). */
+  provider?: "kit" | "passkey";
 }
 
 export const DEMO_IDENTITIES: ConnectedWallet[] = [
@@ -105,7 +113,14 @@ export async function connectRealWallet(): Promise<string> {
   return address;
 }
 
+/** Creates or unlocks a WebAuthn Passkey-backed Stellar account (no extension needed). */
+export async function connectPasskeyWallet(): Promise<string> {
+  const account = await unlockPasskeyWallet();
+  return account.publicKey;
+}
+
 export async function disconnectRealWallet(): Promise<void> {
+  clearPasskeyAccount();
   try {
     const kit = await getKit();
     await kit.disconnect();
@@ -114,11 +129,19 @@ export async function disconnectRealWallet(): Promise<void> {
   }
 }
 
-/** Signs a transaction XDR with the connected wallet (shape expected by the Stellar SDK contract client). */
+/** Signs a transaction XDR with the connected wallet (Passkey or Stellar Wallets Kit). */
 export async function signWithWallet(
   xdr: string,
   opts?: { networkPassphrase?: string; address?: string },
 ): Promise<{ signedTxXdr: string; signerAddress?: string }> {
+  const saved = getConnectedWallet();
+  const passkey = getSavedPasskeyAccount();
+  if (saved?.provider === "passkey" && passkey && (!opts?.address || opts.address === passkey.publicKey)) {
+    return {
+      signedTxXdr: signXdrWithPasskey(xdr, passkey),
+      signerAddress: passkey.publicKey,
+    };
+  }
   const kit = await getKit();
   return kit.signTransaction(xdr, {
     networkPassphrase: opts?.networkPassphrase ?? NETWORK_PASSPHRASE,
