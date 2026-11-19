@@ -172,7 +172,17 @@ export default function MilestoneRow({
         {t(step.text)}
       </p>
 
-      <p className="mt-1 text-xs text-ink/50">{t("ms.fee", { fee: formatAmount(fee), net: formatAmount(net) })}</p>
+      <p className="mt-1 text-xs text-ink/50">
+        {(() => {
+          // After a dispute, the fee only applies to the freelancer's share.
+          if (milestone.status === "Resolved" && milestone.resolvedFreelancerBps !== undefined) {
+            const part = Math.floor((milestone.amount * milestone.resolvedFreelancerBps) / BPS_DENOMINATOR);
+            const partFee = Math.floor((part * agreement.feeBps) / BPS_DENOMINATOR);
+            return t("ms.fee", { fee: formatAmount(partFee), net: formatAmount(part - partFee) });
+          }
+          return t("ms.fee", { fee: formatAmount(fee), net: formatAmount(net) });
+        })()}
+      </p>
 
       {milestone.status === "Submitted" && (
         <p className="mt-1 text-xs text-amber-700">
