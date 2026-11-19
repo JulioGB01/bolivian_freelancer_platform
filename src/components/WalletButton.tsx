@@ -19,7 +19,7 @@ import { DEMO_IDENTITIES } from "@/lib/wallet";
 export default function WalletButton() {
   const { t } = useT();
   const mode = useMode();
-  const { wallet, connectAs, connectReal, disconnectWallet } = useWallet();
+  const { wallet, connectAs, connectReal, connectPasskey, disconnectWallet } = useWallet();
   const [open, setOpen] = useState(false);
   const [balance, setBalance] = useState(0);
   const [acct, setAcct] = useState<AccountBalances | null>(null);
@@ -99,23 +99,46 @@ export default function WalletButton() {
     }
   }
 
+  async function onConnectPasskey() {
+    setBusy("passkey");
+    setErr("");
+    try {
+      await connectPasskey();
+      setOpen(true);
+    } catch (e) {
+      setErr(errorMessage(e, t));
+      setOpen(true);
+    } finally {
+      setBusy(null);
+    }
+  }
+
   const roleKey: MsgKey = wallet
     ? wallet.kind === "testnet" && wallet.role !== "arbiter"
       ? "role.wallet"
       : (`role.${wallet.role}` as MsgKey)
     : "role.viewer";
 
-  // Testnet mode, not connected: the button opens the real wallet picker.
+  // Testnet mode, not connected: offer wallet picker or zero-extension Passkey onboarding.
   if (!wallet && mode === "testnet") {
     return (
-      <div className="relative" ref={ref}>
+      <div className="relative flex flex-wrap items-center gap-2" ref={ref}>
         <button
           type="button"
           onClick={onConnectReal}
-          disabled={busy === "connect"}
+          disabled={busy !== null}
           className=" bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-black disabled:opacity-60"
         >
           {busy === "connect" ? t("wallet.connecting") : t("wallet.connect")}
+        </button>
+        <button
+          type="button"
+          onClick={onConnectPasskey}
+          disabled={busy !== null}
+          title="Crear o abrir cuenta Stellar con huella / FaceID sin instalar Freighter"
+          className="border border-ink bg-white px-3.5 py-2.5 text-xs font-semibold text-ink hover:bg-paper disabled:opacity-60"
+        >
+          {busy === "passkey" ? "..." : "Passkey"}
         </button>
         {open && err && (
           <div className="absolute right-0 z-20 mt-2 w-72 border border-red-200 bg-white p-3 text-xs text-red-700 shadow-lg">

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getEscrow, resetEscrow } from "./escrow";
 import { getMode } from "./mode";
 import {
+  connectPasskeyWallet,
   connectRealWallet,
   disconnectRealWallet,
   forgetWallet,
@@ -48,7 +49,22 @@ export function useWallet() {
       /* config unreachable: keep viewer */
     }
     resetEscrow();
-    setWallet(saveWallet({ address, role, kind: "testnet" }));
+    setWallet(saveWallet({ address, role, kind: "testnet", provider: "kit" }));
+    window.dispatchEvent(new Event(EVENT));
+  }, []);
+
+  /** Testnet mode: create or unlock a WebAuthn Passkey account (no wallet extension needed). */
+  const connectPasskey = useCallback(async () => {
+    const address = await connectPasskeyWallet();
+    let role: ConnectedWallet["role"] = "viewer";
+    try {
+      const cfg = await getEscrow().getConfig();
+      if (cfg.arbiter === address) role = "arbiter";
+    } catch {
+      /* config unreachable: keep viewer */
+    }
+    resetEscrow();
+    setWallet(saveWallet({ address, role, kind: "testnet", provider: "passkey" }));
     window.dispatchEvent(new Event(EVENT));
   }, []);
 
@@ -60,5 +76,5 @@ export function useWallet() {
     window.dispatchEvent(new Event(EVENT));
   }, []);
 
-  return { wallet, connectAs, connectReal, disconnectWallet };
+  return { wallet, connectAs, connectReal, connectPasskey, disconnectWallet };
 }

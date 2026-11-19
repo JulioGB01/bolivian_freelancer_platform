@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { computeSha256Hex, formatOnChainEvidence, parseOnChainEvidence, type EvidenceRecord } from "@/lib/evidence";
 import { BPS_DENOMINATOR, formatAmount, formatCountdown, formatDate, shortAddress } from "@/lib/format";
 import { getEscrow, notifyEscrowChanged } from "@/lib/escrow";
 import { useT } from "@/lib/i18n";
 import { nextStep, reviewDeadline, TONE_BADGE, TONE_BORDER } from "@/lib/status";
 import { useNow } from "@/lib/useNow";
+import { useWallet } from "@/lib/useWallet";
 import type { Agreement, Milestone } from "@/lib/types";
 import type { Role } from "@/lib/wallet";
 import ReviewDialog, { type ReviewRequest } from "./ReviewDialog";
@@ -27,10 +29,24 @@ export default function MilestoneRow({
   readOnly?: boolean;
 }) {
   const { t, lang } = useT();
+  const { wallet } = useWallet();
   const [review, setReview] = useState<ReviewRequest | null>(null);
   const [evidence, setEvidence] = useState("");
+  const [attachedFile, setAttachedFile] = useState<{ name: string; size: number; type: string; sha256: string } | null>(null);
   const [reason, setReason] = useState("");
   const [splitPct, setSplitPct] = useState(50);
+  const [threadOpen, setThreadOpen] = useState(false);
+  const [threadRecords, setThreadRecords] = useState<EvidenceRecord[]>([]);
+  const [threadNote, setThreadNote] = useState("");
+  const [threadBusy, setThreadBusy] = useState(false);
+
+  useEffect(() => {
+    if (!threadOpen) return;
+    fetch(`/api/evidence?agreementId=${agreement.id}&milestoneIndex=${index}`)
+      .then((r) => r.json())
+      .then((d: { records?: EvidenceRecord[] }) => setThreadRecords(d.records ?? []))
+      .catch(() => {});
+  }, [threadOpen, agreement.id, index]);
 
   // Ticks every second, so the countdown and the Claim / Dispute buttons update live.
   const now = useNow();
@@ -67,7 +83,39 @@ export default function MilestoneRow({
   const freelancerPart = Math.floor((milestone.amount * splitPct) / 100);
   const splitFee = Math.floor((freelancerPart * agreement.feeBps) / BPS_DENOMINATOR);
   const evidenceIsLink = /^https?:\/\/\S+$/i.test(evidence.trim());
+  const canSubmitWork = evidenceIsLink || attachedFile !== null;
+  const parsedOnChain = milestone.evidence ? parseOnChainEvidence(milestone.evidence) : null;
   const dateLocale = lang === "es" ? "es-BO" : "en-US";
+  const stageIdx =
+    milestone.status === "Pending"
+      ? 0
+      : milestone.status === "Funded"
+        ? 1
+        : milestone.status === "Submitted"
+          ? 2
+          : 3;
+  const stageLabels =
+    lang === "es"
+      ? [
+          "1. Pendiente",
+          "2. Fondeado",
+          "3. Entregado",
+          milestone.status === "Disputed"
+            ? "4. Disputa"
+            : milestone.status === "Refunded"
+              ? "4. Reembolsado"
+              : "4. Liberado",
+        ]
+      : [
+          "1. Pending",
+          "2. Funded",
+          "3. Submitted",
+          milestone.status === "Disputed"
+            ? "4. Disputed"
+            : milestone.status === "Refunded"
+              ? "4. Refunded"
+              : "4. Released",
+        ];
   const payoutRows = [
     { label: t("rv.amount"), value: usd(milestone.amount) },
     { label: t("rv.fee", { pct }), value: `− ${usd(fee)}` },
@@ -92,7 +140,30 @@ export default function MilestoneRow({
         </div>
       </div>
 
-      <p className={`mt-2 text-sm ${step.needsAction ? "font-medium" : "text-ink/60"}`}>
+      <div className="mt-3 grid grid-cols-4 gap-1.5" aria-label="Progreso del hito">
+        {stageLabels.map((lbl, sIdx) => {
+          const isCurrent = sIdx === stageIdx;
+          const isDone = sIdx < stageIdx || (sIdx === 3 && stageIdx === 3 && milestone.status !== "Disputed");
+          const barCls =
+            milestone.status === "Disputed" && sIdx === 3
+              ? "bg-bo-red"
+              : isCurrent
+                ? "bg-brand-600"
+                : isDone
+                  ? "bg-ink"
+                  : "bg-line";
+          return (
+            <div key={lbl} className="space-y-1">
+              <div className={`h-1.5 w-full ${barCls}`} />
+              <p className={`truncate font-mono text-[10px] ${isCurrent ? "font-semibold text-ink" : "text-ink/45"}`}>
+                {lbl}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+
+      <p className={`mt-3 text-sm ${step.needsAction ? "font-medium" : "text-ink/60"}`}>
         {step.needsAction && (
           <span className="mr-1.5 bg-bo-yellow px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ink">
             {t("ms.yourTurn")}
@@ -115,15 +186,22 @@ export default function MilestoneRow({
         </p>
       )}
 
-      {milestone.evidence && (
-        <div className="mt-2 text-xs">
-          <span className="text-ink/50">{t("ms.delivered")} </span>
-          {/^https?:\/\//i.test(milestone.evidence) ? (
-            <a href={milestone.evidence} target="_blank" rel="noreferrer noopener nofollow" className="break-all text-brand-700 underline">
-              {milestone.evidence}
-            </a>
-          ) : (
-            <span className="break-all">{milestone.evidence}</span>
+      {parsedOnChain && (
+        <div className="mt-2 space-y-1 text-xs">
+          <div>
+            <span className="text-ink/50">{t("ms.delivered")} </span>
+            {parsedOnChain.url ? (
+              <a href={parsedOnChain.url} target="_blank" rel="noreferrer noopener nofollow" className="break-all text-brand-700 underline">
+                {parsedOnChain.url}
+              </a>
+            ) : (
+              <span className="break-all">{parsedOnChain.raw}</span>
+            )}
+          </div>
+          {parsedOnChain.sha256 && (
+            <p className="inline-block bg-paper px-2 py-0.5 font-mono text-[11px] text-ink/70">
+              SHA-256: {parsedOnChain.sha256.slice(0, 16)}…{parsedOnChain.sha256.slice(-8)}
+            </p>
           )}
         </div>
       )}
@@ -167,19 +245,65 @@ export default function MilestoneRow({
                     evidence.trim().length > 0 && !evidenceIsLink ? "border-red-400" : "border-line"
                   }`}
                 />
+                <label className="cursor-pointer border border-line bg-paper px-3 py-2 text-xs font-medium text-ink hover:border-ink">
+                  {attachedFile ? `SHA-256: ${attachedFile.sha256.slice(0, 8)}…` : "Adjuntar archivo (SHA-256)"}
+                  <input
+                    type="file"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      const buf = await f.arrayBuffer();
+                      const sha256 = await computeSha256Hex(buf);
+                      setAttachedFile({ name: f.name, size: f.size, type: f.type, sha256 });
+                    }}
+                  />
+                </label>
                 <ActionButton
-                  disabled={!evidenceIsLink}
-                  onClick={() =>
+                  disabled={!canSubmitWork}
+                  onClick={async () => {
+                    const cleanUrl = evidence.trim();
+                    let payload = cleanUrl;
+                    if (attachedFile) {
+                      payload = formatOnChainEvidence({
+                        sha256: attachedFile.sha256,
+                        url: cleanUrl || undefined,
+                        note: attachedFile.name,
+                      });
+                    } else if (cleanUrl) {
+                      const sha256 = await computeSha256Hex(cleanUrl);
+                      payload = formatOnChainEvidence({ sha256, url: cleanUrl });
+                    }
                     ask({
                       title: "rv.submit",
                       rows: [
                         { label: t("ms.milestone", { n: index + 1 }), value: milestone.title },
-                        { label: t("ms.delivered"), value: evidence.trim() },
+                        { label: t("ms.delivered"), value: payload },
                       ],
                       what: "rv.whatSubmit",
-                      action: () => getEscrow().submitMilestone(agreement.id, index, evidence.trim()),
-                    })
-                  }
+                      action: async () => {
+                        await getEscrow().submitMilestone(agreement.id, index, payload);
+                        if (attachedFile) {
+                          await fetch("/api/evidence", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              agreementId: agreement.id,
+                              milestoneIndex: index,
+                              author: wallet?.address ?? agreement.freelancer,
+                              kind: "deliverable",
+                              fileName: attachedFile.name,
+                              fileSizeBytes: attachedFile.size,
+                              mimeType: attachedFile.type,
+                              url: cleanUrl || undefined,
+                              note: `Entrega inicial: ${attachedFile.name}`,
+                              sha256: attachedFile.sha256,
+                            }),
+                          }).catch(() => {});
+                        }
+                      },
+                    });
+                  }}
                 >
                   {t("ms.submit")}
                 </ActionButton>
@@ -291,6 +415,78 @@ export default function MilestoneRow({
             >
               {t("ms.refund")}
             </ActionButton>
+          )}
+        </div>
+      )}
+
+      {(milestone.status === "Submitted" || milestone.status === "Disputed") && (
+        <div className="mt-3 border-t border-line pt-3">
+          <button
+            type="button"
+            onClick={() => setThreadOpen((v) => !v)}
+            className="text-xs font-medium text-brand-700 hover:underline"
+          >
+            {threadOpen ? "Ocultar hilo de evidencia / disputa" : "Ver hilo de evidencia y disputa (SHA-256)"}
+          </button>
+          {threadOpen && (
+            <div className="mt-2 space-y-2 bg-paper p-3 text-xs">
+              {threadRecords.length === 0 ? (
+                <p className="text-ink/50">Sin mensajes o adjuntos off-chain registrados aún.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {threadRecords.map((r) => (
+                    <li key={r.id} className="border border-line bg-white p-2">
+                      <div className="flex flex-wrap justify-between gap-1 text-[11px] text-ink/50">
+                        <span>{shortAddress(r.author)}</span>
+                        <span className="font-mono">sha256:{r.sha256.slice(0, 12)}…</span>
+                      </div>
+                      <p className="mt-1 text-ink">{r.note}</p>
+                      {r.fileName && <p className="mt-0.5 text-[11px] text-ink/60">Archivo: {r.fileName}</p>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {!readOnly && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <input
+                    value={threadNote}
+                    onChange={(e) => setThreadNote(e.target.value)}
+                    placeholder="Agregar nota o descargo verificable..."
+                    className="min-w-0 flex-1 border border-line bg-white px-2.5 py-1.5 text-xs"
+                  />
+                  <button
+                    type="button"
+                    disabled={!threadNote.trim() || threadBusy}
+                    onClick={async () => {
+                      setThreadBusy(true);
+                      try {
+                        const res = await fetch("/api/evidence", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            agreementId: agreement.id,
+                            milestoneIndex: index,
+                            author: wallet?.address ?? role,
+                            kind: "dispute_message",
+                            note: threadNote.trim(),
+                          }),
+                        });
+                        const data = (await res.json()) as { record?: EvidenceRecord };
+                        if (res.ok && data.record) {
+                          setThreadRecords((prev) => [...prev, data.record!]);
+                          setThreadNote("");
+                        }
+                      } finally {
+                        setThreadBusy(false);
+                      }
+                    }}
+                    className="bg-ink px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                  >
+                    {threadBusy ? "..." : "Registrar"}
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}

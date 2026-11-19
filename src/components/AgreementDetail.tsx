@@ -5,6 +5,7 @@ import Link from "next/link";
 import Invitation from "./Invitation";
 import MilestoneRow from "./MilestoneRow";
 import MoneyLocked from "./MoneyLocked";
+import NotificationBar from "./NotificationBar";
 import PayoutEcosystemPanel from "./PayoutEcosystemPanel";
 import Timeline from "./Timeline";
 import { EXPLORER_URL, ESCROW_CONTRACT_ID, USDC_CONTRACT_ID } from "@/lib/config";
@@ -94,7 +95,22 @@ export default function AgreementDetail({ id }: { id: number }) {
     );
   }
 
-  if (!agreement || !config) return <p className="text-ink/50">{t("ag.loading")}</p>;
+  if (!agreement || !config) {
+    return (
+      <div className="animate-pulse space-y-6" aria-label={t("ag.loading")}>
+        <div className="h-4 w-28 bg-line" />
+        <div className="h-10 w-2/3 bg-line" />
+        <div className="h-28 w-full border border-line bg-white p-5">
+          <div className="h-4 w-1/3 bg-line" />
+          <div className="mt-4 h-3 w-full bg-paper" />
+        </div>
+        <div className="space-y-3">
+          <div className="h-32 w-full border border-line bg-white" />
+          <div className="h-32 w-full border border-line bg-white" />
+        </div>
+      </div>
+    );
+  }
 
   const pinnedArbiter = agreement.arbiter ?? config.arbiter;
   const role = roleIn(agreement, wallet?.address, pinnedArbiter);
@@ -166,6 +182,7 @@ export default function AgreementDetail({ id }: { id: number }) {
       {tab === "summary" && (
         <div className="space-y-4">
           <MoneyLocked agreement={agreement} />
+          <NotificationBar agreementId={agreement.id} />
           <div className="space-y-3">
             {agreement.milestones.map((m, i) => (
               <MilestoneRow key={i} agreement={agreement} milestone={m} index={i} role={role} onChanged={refresh} />
