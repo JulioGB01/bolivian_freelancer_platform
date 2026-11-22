@@ -121,8 +121,9 @@ Run on 2026-11-22 against `CAF4G4AC…DOUO` with the team's test accounts: [agre
 | Client approves milestone 1 | approval | [`73eb677d…`](https://stellar.expert/explorer/testnet/tx/73eb677d4b7c8c171e24e546748a6a72b5629c1134084f48d9294eea4d7eb4be) | freelancer +98.5, fee 1.5 |
 | Client disputes milestone 2 | dispute | [`b77e08de…`](https://stellar.expert/explorer/testnet/tx/b77e08ded674ae4f45e40645b0549512f5e520f0d3d2685152f4dff14b6e67c5) | milestone frozen until the arbiter rules |
 | Arbiter splits milestone 2 60/40 | dispute | [`b967d08a…`](https://stellar.expert/explorer/testnet/tx/b967d08a57ccfafcf7e43c1ecb4e016149b034ab8fb2197842953dde04869bcb) | freelancer +59.1, client +40, fee 0.9 (fee only on the freelancer's share) |
+| Freelancer claims milestone 3 after the review window ends with no answer | claim | [`ee73377b…`](https://stellar.expert/explorer/testnet/tx/ee73377b40ce1dcf196226d862aac80a8eed66bfec007b670e4b740426306cbb) | freelancer +98.5, fee 1.5 |
 
-Net result after the first two milestones: client −260, freelancer +157.6, fee recipient +2.4 test USDC, which matches the contract's fee math at 1.5%. Milestone 3 is left without an answer so the freelancer can claim it once the review window ends.
+Net result: client −260, freelancer +256.1, fee recipient +3.9 test USDC, which matches the contract's fee math at 1.5%. All three settlement paths (approval, dispute, claim after silence) ran on the current contract.
 
 ## Try it
 
