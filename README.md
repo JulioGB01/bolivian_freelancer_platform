@@ -39,7 +39,16 @@ Bolivian freelancers working for clients at home or abroad:
    - the client **disputes** it (while `Submitted` within the review window, or while `Funded` if the freelancer ghosts), and the agreement's pinned **arbiter** splits the amount between both sides.
 5. **Cash out & proof:** once USDC is released, the freelancer can convert to bolivianos via **Pollar (QR Simple)**, save in USDC via **Vaquita**, and download a **payment receipt (SIAT / bank proof)**.
 
-**Non-custodial & rule-locked:** Nobody can change an agreement's rules after creation, not even the platform admin. Each agreement snapshots its **`fee_bps` (1.5% / `150 bps`)**, **`arbiter`**, and **`fee_recipient`** at creation time, with ~30-day Soroban storage TTL renewal on every state change. Once money is locked, the client can never unilaterally pull it back; only the freelancer can refund, or the pinned arbiter can split a formal dispute.
+**Non-custodial & rule-locked:** Nobody can change an agreement's fee, arbiter or fee recipient after creation, not even the platform admin. Each agreement snapshots its **`fee_bps`**, **`arbiter`**, and **`fee_recipient`** at creation time, with ~30-day Soroban storage TTL renewal on every state change. Once money is locked, the client can never unilaterally pull it back; only the freelancer can refund, or the pinned arbiter can split a formal dispute.
+
+### Who the arbiter is, and what it can do
+
+Today the arbiter is **one Stellar account held by the team** ([`GBBEOA7E…QUDU`](https://stellar.expert/explorer/testnet/account/GBBEOA7ETJ2OZA6GYD6PUA6R2NKF7ZCY72V4HHITHGWGVQMZHZESQUDU)), pinned into every agreement when it is created.
+
+- **It can:** split a milestone the client has disputed, sending any share (0–100%) to the freelancer and the rest back to the client.
+- **It cannot:** touch a milestone that is not disputed, move money to any address other than the agreement's freelancer, client and fee recipient, change the fee, or act on agreements where it is not the pinned arbiter.
+- **The admin** can point *future* agreements to a different arbiter, fee or fee recipient (`update_config`). Existing agreements keep their snapshot. The contract has no upgrade function.
+- **The trust that remains:** in a dispute, both sides rely on the team's judgment. The roadmap replaces the single account with a 2-of-3 panel; that is not built yet.
 
 | Agreement: money locked and status per milestone | Live review countdown and "your turn" actions |
 |---|---|
@@ -61,16 +70,33 @@ Bolivian freelancers working for clients at home or abroad:
 | Agreement | `/app/acuerdo/[id]` | Tabs: Summary · Activity · Details. A client sees a guided invitation first |
 | Wallet | `/app/billetera` | Test XLM (Friendbot), USDC trustline, test-USDC faucet |
 
-Every money action opens a **review** (amount, 1.5% fee, who gets what) before the wallet signs, and ends with a **receipt** linking to the transaction. The **activity timeline** is read from the contract's events on Stellar.
+Every money action opens a **review** (amount, fee, who gets what) before the wallet signs, and ends with a **receipt** linking to the transaction. The **activity timeline** is read from the contract's events on Stellar.
 
 ## Why Stellar & Ecosystem Integration
 
 With a database, the platform holds the money and everyone has to trust the platform (and in Bolivia, holding third-party funds triggers ASFI financial intermediation / ETF licensing). With a Soroban contract, the money sits in a **non-custodial** public contract whose rules can't change. **The freelancer can verify the funds themselves on a block explorer.**
 
-- **Soroban (Rust) + USDC SAC:** Deterministic milestone settlement with 1.5% (`150 bps`) fee.
+- **Soroban (Rust) + USDC SAC:** Deterministic milestone settlement with a fee frozen per agreement.
 - **Pollar (BOB off-ramp):** Post-release handoff and live BOB/USDC parallel-rate preview to withdraw to any Bolivian bank via QR Simple.
 - **Vaquita:** Post-release savings CTA to keep unused USDC earning yield on Stellar.
 - **Stellar Wallets Kit:** Freighter, xBull, Albedo, LOBSTR, Hana, and Rabet support.
+
+### Integration status
+
+What runs today on the live site, checked against the code and the live API endpoints on 2026-11-22.
+
+| Integration | Status | Notes |
+|---|---|---|
+| Soroban escrow contract + test USDC | **Live on testnet** | Every money action in testnet mode is a real contract call. See the end-to-end run below. |
+| Test-USDC faucet contract | **Live on testnet** | 1,000 test USDC per account per day. |
+| Stellar Wallets Kit (Freighter and others) | **Live on testnet** | Used to sign in testnet mode. |
+| Public proof `/verificar/[id]` and profiles `/perfil/[address]` | **Live** | Read directly from the contract and its events. |
+| Pollar (BOB off-ramp) | **Planned, UI only** | API route exists but no Pollar keys are configured; the BOB rate shown is a fixed reference value (11.2), not a live quote. The API paths are unverified. |
+| Vaquita (USDC savings) | **Planned, UI only** | API route exists, not configured; no deposit happens. |
+| Payment receipt (SIAT support) | **Works, informational** | Generates a printable/JSON receipt from on-chain data. It is not an official SIAT invoice. |
+| Passkey wallet for clients | **Prototype** | Creates a WebAuthn credential and a local testnet key stored in the browser. Not a Soroban smart wallet yet. |
+| Fee-bump gas sponsorship | **Planned, not configured** | Server route exists; no sponsor key is set on the live site. |
+| Fiat on-ramp (SEP-24 / card) | **Planned, not configured** | Returns a placeholder quote only. |
 
 **Built with:** Soroban (Rust, `soroban-sdk` 28.0.0) · USDC as a Stellar Asset Contract · Stellar Wallets Kit · Stellar SDK generated contract bindings · Friendbot · Next.js + TypeScript + Tailwind + Vitest.
 
@@ -81,9 +107,22 @@ With a database, the platform holds the money and everyone has to trust the plat
 | Escrow contract | [`CAF4G4AC…DOUO`](https://stellar.expert/explorer/testnet/contract/CAF4G4ACGMDYLPYPPGMVKTL3FTHVTKOR4OTD7YE5CQWCQ5X327E3DOUO) |
 | Test USDC | [`CAHWJDBZ…DXR2`](https://stellar.expert/explorer/testnet/contract/CAHWJDBZVQCKB3J5PLBQKJJJLG4BDYANSK4JTAMS2TYEKWRLQZFYDXR2) (test asset, no real value) |
 | Test-USDC faucet | [`CB74EKQ5…VO3O`](https://stellar.expert/explorer/testnet/contract/CB74EKQ5HJBY7NF277QJIQHI7W4QA6IOAPXW2ALSBV2GTTRE5VOXVO3O) (1,000 test USDC per account per day, signed by the user) |
-| Default fee | **1.5% (`150 bps`)** (frozen per agreement at creation) |
+| Fee on the deployed contract | **5% (`500 bps`)**, read from `get_config` on 2026-11-22 and frozen per agreement at creation. The product fee is 1.5% (as on the website); this testnet deployment is still configured at 5%. |
 
-On-chain smoke test reference: the client locked 100 USDC ([tx](https://stellar.expert/explorer/testnet/tx/e662fa8f39ac084cf8ca0efc32de1ea288a47ea0cffc33049ed2f7554d9cad81)) and released on approval ([tx](https://stellar.expert/explorer/testnet/tx/ebc36775d597b210d0abd29ec1a6b057928ac0caa52c571f3971261ca795c37a)). *(The initial testnet deployment was initialized at 5% before hardening; the hardened contract default is 1.5% / `150 bps`.)*
+### End-to-end run on the current contract
+
+Run on 2026-11-22 against `CAF4G4AC…DOUO` with the team's test accounts: [agreement #2](https://bolivia-escrow.vercel.app/verificar/2), three milestones of 100 test USDC each, review window 1 hour. Balances were checked before and after each step.
+
+| Step | Path | Transaction | Result |
+|---|---|---|---|
+| Freelancer creates the agreement | — | [`3c49f0f9…`](https://stellar.expert/explorer/testnet/tx/3c49f0f9b0b280008931b9279308e33d2df6cfb9fac122de0ef4839953c5dc64) | 3 milestones, fee, arbiter and fee recipient frozen |
+| Client locks milestone 1 / 2 / 3 | — | [`a97b5678…`](https://stellar.expert/explorer/testnet/tx/a97b56781ac093f7b58144baebfe203f1e4947a4725a21293f6dd3e85e6c54b4) · [`5ca18b48…`](https://stellar.expert/explorer/testnet/tx/5ca18b481fdc6ff3d4fa856d7bd5dba1f7ebafc4eb3be5de2676904f4db20dc2) · [`7ba3ec4d…`](https://stellar.expert/explorer/testnet/tx/7ba3ec4dc0b77d46d1ed7dda8894339f6c0ef2531da786235ee7d87065bb5e4a) | 300 USDC held by the contract |
+| Freelancer submits milestone 1 / 2 / 3 | — | [`9eec5cbd…`](https://stellar.expert/explorer/testnet/tx/9eec5cbd79ab68eddce30fbe368b3497ab5bb2ddb7efb9dba5e1c3000c2433bf) · [`200850da…`](https://stellar.expert/explorer/testnet/tx/200850da1fb0e20e5644909f26470bd9f6bebf19e9eb44f467238eb904fc3030) · [`9c744451…`](https://stellar.expert/explorer/testnet/tx/9c744451d45fd7a2defc0bbc2ee7aa91d65267c73a4c3f48387f8c325a4765ba) | review window starts |
+| Client approves milestone 1 | approval | [`a5067b4e…`](https://stellar.expert/explorer/testnet/tx/a5067b4ebe41a642b86fa02ba976fa14b0648fe115d16f73ac0082cef662906f) | freelancer +95, fee 5 |
+| Client disputes milestone 2 | dispute | [`b7279737…`](https://stellar.expert/explorer/testnet/tx/b72797378996d3552dbdcb0944134d4b98e3856f8714db9280e959feece5f379) | milestone frozen until the arbiter rules |
+| Arbiter splits milestone 2 60/40 | dispute | [`fb9f9e68…`](https://stellar.expert/explorer/testnet/tx/fb9f9e68a5429859fea71a1f3cf8a332a756fa47f010f0b57579be54f4a160f4) | freelancer +57, client +40, fee 3 (fee only on the freelancer's share) |
+
+Net result: client −260, freelancer +152, fee recipient +8 test USDC after the first two milestones, which matches the contract's fee math at 5%.
 
 ## Try it
 
