@@ -107,22 +107,22 @@ What runs today on the live site, checked against the code and the live API endp
 | Escrow contract | [`CAF4G4AC…DOUO`](https://stellar.expert/explorer/testnet/contract/CAF4G4ACGMDYLPYPPGMVKTL3FTHVTKOR4OTD7YE5CQWCQ5X327E3DOUO) |
 | Test USDC | [`CAHWJDBZ…DXR2`](https://stellar.expert/explorer/testnet/contract/CAHWJDBZVQCKB3J5PLBQKJJJLG4BDYANSK4JTAMS2TYEKWRLQZFYDXR2) (test asset, no real value) |
 | Test-USDC faucet | [`CB74EKQ5…VO3O`](https://stellar.expert/explorer/testnet/contract/CB74EKQ5HJBY7NF277QJIQHI7W4QA6IOAPXW2ALSBV2GTTRE5VOXVO3O) (1,000 test USDC per account per day, signed by the user) |
-| Fee on the deployed contract | **5% (`500 bps`)**, read from `get_config` on 2026-11-22 and frozen per agreement at creation. The product fee is 1.5% (as on the website); this testnet deployment is still configured at 5%. |
+| Fee | **1.5% (`150 bps`)**, read from `get_config` on 2026-11-22 and frozen per agreement at creation. Agreements #0–#2 were created while the contract was set to 5% and keep that fee ([config change](https://stellar.expert/explorer/testnet/tx/72d5271748d3077cf1f8b432869b734b42d79982a3a77e904496d459c5e4d32c)). |
 
 ### End-to-end run on the current contract
 
-Run on 2026-11-22 against `CAF4G4AC…DOUO` with the team's test accounts: [agreement #2](https://bolivia-escrow.vercel.app/verificar/2), three milestones of 100 test USDC each, review window 1 hour. Balances were checked before and after each step.
+Run on 2026-11-22 against `CAF4G4AC…DOUO` with the team's test accounts: [agreement #3](https://bolivia-escrow.vercel.app/verificar/3), three milestones of 100 test USDC each, fee 1.5%, review window 1 hour. Balances were checked before and after each step.
 
 | Step | Path | Transaction | Result |
 |---|---|---|---|
-| Freelancer creates the agreement | — | [`3c49f0f9…`](https://stellar.expert/explorer/testnet/tx/3c49f0f9b0b280008931b9279308e33d2df6cfb9fac122de0ef4839953c5dc64) | 3 milestones, fee, arbiter and fee recipient frozen |
-| Client locks milestone 1 / 2 / 3 | — | [`a97b5678…`](https://stellar.expert/explorer/testnet/tx/a97b56781ac093f7b58144baebfe203f1e4947a4725a21293f6dd3e85e6c54b4) · [`5ca18b48…`](https://stellar.expert/explorer/testnet/tx/5ca18b481fdc6ff3d4fa856d7bd5dba1f7ebafc4eb3be5de2676904f4db20dc2) · [`7ba3ec4d…`](https://stellar.expert/explorer/testnet/tx/7ba3ec4dc0b77d46d1ed7dda8894339f6c0ef2531da786235ee7d87065bb5e4a) | 300 USDC held by the contract |
-| Freelancer submits milestone 1 / 2 / 3 | — | [`9eec5cbd…`](https://stellar.expert/explorer/testnet/tx/9eec5cbd79ab68eddce30fbe368b3497ab5bb2ddb7efb9dba5e1c3000c2433bf) · [`200850da…`](https://stellar.expert/explorer/testnet/tx/200850da1fb0e20e5644909f26470bd9f6bebf19e9eb44f467238eb904fc3030) · [`9c744451…`](https://stellar.expert/explorer/testnet/tx/9c744451d45fd7a2defc0bbc2ee7aa91d65267c73a4c3f48387f8c325a4765ba) | review window starts |
-| Client approves milestone 1 | approval | [`a5067b4e…`](https://stellar.expert/explorer/testnet/tx/a5067b4ebe41a642b86fa02ba976fa14b0648fe115d16f73ac0082cef662906f) | freelancer +95, fee 5 |
-| Client disputes milestone 2 | dispute | [`b7279737…`](https://stellar.expert/explorer/testnet/tx/b72797378996d3552dbdcb0944134d4b98e3856f8714db9280e959feece5f379) | milestone frozen until the arbiter rules |
-| Arbiter splits milestone 2 60/40 | dispute | [`fb9f9e68…`](https://stellar.expert/explorer/testnet/tx/fb9f9e68a5429859fea71a1f3cf8a332a756fa47f010f0b57579be54f4a160f4) | freelancer +57, client +40, fee 3 (fee only on the freelancer's share) |
+| Freelancer creates the agreement | — | [`259c140b…`](https://stellar.expert/explorer/testnet/tx/259c140b25014801985768c57e654d2fe26b44219fc879335362444198f9ac86) | 3 milestones; fee, arbiter and fee recipient frozen |
+| Client locks milestone 1 / 2 / 3 | — | [`40844b01…`](https://stellar.expert/explorer/testnet/tx/40844b01470a8ff49055d6da4c05debc6ea1b4d78af8c274223c10f4110a5d45) · [`3a0db2c2…`](https://stellar.expert/explorer/testnet/tx/3a0db2c2918601daca8e13c75a0054a28f028844b05c422e259de36eaeccb899) · [`9432c981…`](https://stellar.expert/explorer/testnet/tx/9432c981e5867824c483ba2b4f45bcf1508dc64f0874d23b2c6e17b1eb574d6e) | 300 USDC held by the contract |
+| Freelancer submits milestone 1 / 2 / 3 | — | [`3d8e4409…`](https://stellar.expert/explorer/testnet/tx/3d8e44091e31809d190b75fe6b75277466b4a55bebae487d61ac818a1b17612e) · [`6f222594…`](https://stellar.expert/explorer/testnet/tx/6f222594501fd561234319d6d6d4e7be34e6a15c02ed255e4217e08eebeb4824) · [`4416dfd7…`](https://stellar.expert/explorer/testnet/tx/4416dfd7325d3ee52b6381fe17ba0355754b685a466ecc6843ef5aa491556c91) | review window starts |
+| Client approves milestone 1 | approval | [`73eb677d…`](https://stellar.expert/explorer/testnet/tx/73eb677d4b7c8c171e24e546748a6a72b5629c1134084f48d9294eea4d7eb4be) | freelancer +98.5, fee 1.5 |
+| Client disputes milestone 2 | dispute | [`b77e08de…`](https://stellar.expert/explorer/testnet/tx/b77e08ded674ae4f45e40645b0549512f5e520f0d3d2685152f4dff14b6e67c5) | milestone frozen until the arbiter rules |
+| Arbiter splits milestone 2 60/40 | dispute | [`b967d08a…`](https://stellar.expert/explorer/testnet/tx/b967d08a57ccfafcf7e43c1ecb4e016149b034ab8fb2197842953dde04869bcb) | freelancer +59.1, client +40, fee 0.9 (fee only on the freelancer's share) |
 
-Net result: client −260, freelancer +152, fee recipient +8 test USDC after the first two milestones, which matches the contract's fee math at 5%.
+Net result after the first two milestones: client −260, freelancer +157.6, fee recipient +2.4 test USDC, which matches the contract's fee math at 1.5%. Milestone 3 is left without an answer so the freelancer can claim it once the review window ends.
 
 ## Try it
 

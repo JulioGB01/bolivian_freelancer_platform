@@ -26,5 +26,5 @@ $STELLAR contract invoke --id "$ESCROW" --source-account bfe-freelancer --networ
 $STELLAR contract invoke --id "$ESCROW" --source-account bfe-client --network $NET -- approve_milestone --agreement_id "$ID" --index 0
 
 echo "Client after:      $(bal bfe-client)"
-echo "Freelancer after:  $(bal bfe-freelancer)   (expected +95 USDC = 950000000 with a 5% fee)"
+echo "Freelancer after:  $(bal bfe-freelancer)   (expected +98.5 USDC = 985000000 with a 1.5% fee)"
 $STELLAR contract invoke --id "$ESCROW" --source-account bfe-admin --network $NET -- get_agreement --agreement_id "$ID"
