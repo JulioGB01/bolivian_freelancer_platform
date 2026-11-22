@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { Keypair, Transaction, TransactionBuilder, rpc } from "@stellar/stellar-sdk";
+import { Address, Keypair, Transaction, TransactionBuilder, rpc, xdr } from "@stellar/stellar-sdk";
 import {
   ESCROW_CONTRACT_ID,
   FAUCET_CONTRACT_ID,
@@ -15,9 +15,12 @@ function isAllowedInnerTransaction(tx: Transaction): boolean {
   return tx.operations.every((op) => {
     if (op.type === "changeTrust") return true;
     if (op.type === "invokeHostFunction") {
-      // Allow Soroban contract invocations targeting our known escrow/token/faucet contracts.
-      const xdrStr = JSON.stringify(op);
-      return Array.from(ALLOWED_CONTRACTS).some((id) => xdrStr.includes(id) || id.length > 0);
+      // Only sponsor direct calls to our own escrow, token and faucet contracts.
+      // Uploads, deployments and calls to any other contract are rejected.
+      const fn = op.func;
+      if (fn.switch() !== xdr.HostFunctionType.hostFunctionTypeInvokeContract()) return false;
+      const target = Address.fromScAddress(fn.invokeContract().contractAddress()).toString();
+      return ALLOWED_CONTRACTS.has(target);
     }
     return false;
   });
